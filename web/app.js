@@ -119,7 +119,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- data -------
   // Cache-bust by app version so taxonomy revisions actually reach the browser.
-  const DATA_V = "14";
+  const DATA_V = "15";
 
   // First paint only needs the 87-question hot pack (~7 KB brotli). The full
   // markets.json (1.3 MB brotli) loads in the background and swaps in when
@@ -128,13 +128,20 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   let fullMarketsPromise = null;
 
   async function loadFastData() {
-    const [mRes, tRes] = await Promise.all([
+    // descriptions-hot is small (~14 KB brotli) and ships on the same parallel
+    // burst so the first question's description shows up with the question.
+    const [mRes, tRes, dRes] = await Promise.all([
       fetch(`data/markets-hot.json?v=${DATA_V}`),
       fetch(`data/taxonomy.json?v=${DATA_V}`),
+      fetch(`data/descriptions-hot.json?v=${DATA_V}`),
     ]);
     if (!mRes.ok || !tRes.ok) throw new Error("data fetch failed");
     markets = await mRes.json();
     taxonomy = await tRes.json();
+    if (dRes.ok) {
+      descs = await dRes.json();
+      descsReady = true;
+    }
   }
 
   function loadFullMarkets() {

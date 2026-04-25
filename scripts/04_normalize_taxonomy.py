@@ -323,6 +323,26 @@ def main():
     hot_kb = (WEB / "markets-hot.json").stat().st_size / 1024
     print(f"Hot pack:                                  {len(hot_only)} markets, {hot_kb:.1f} KB")
 
+    # Hot description pack: descriptions for the 87 hot picks only, ~68 KB raw
+    # / ~14 KB brotli. Loaded on the fast path so the description of the very
+    # first question shows up immediately, not after the full 25 MB description
+    # blob arrives over a slow connection.
+    hot_ids = {m["id"] for m in hot_only}
+    hot_descs = {}
+    for i in range(4):
+        path = WEB / f"descriptions-{i}.json"
+        if not path.exists():
+            continue
+        with open(path) as f:
+            shard = json.load(f)
+        for k, v in shard.items():
+            if k in hot_ids:
+                hot_descs[k] = v
+    with open(WEB / "descriptions-hot.json", "w") as f:
+        json.dump(hot_descs, f, separators=(",", ":"))
+    desc_hot_kb = (WEB / "descriptions-hot.json").stat().st_size / 1024
+    print(f"Hot descriptions:                          {len(hot_descs)} entries, {desc_hot_kb:.1f} KB")
+
     # Rebuild taxonomy ordered by volume (sum of v within each group)
     tax_counts = {}
     tax_vol = {}
