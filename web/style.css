@@ -634,17 +634,20 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
 /* ------- footer ------- */
 
 footer {
-  max-width: var(--col); margin: 2.5rem auto 0;
+  max-width: var(--col); margin: 4rem auto 0;
   padding: 1.25rem 1.5rem 2rem;
   border-top: 1px solid var(--line-soft);
-  display: flex; justify-content: space-between;
+  display: flex; justify-content: flex-start;
   align-items: baseline; gap: 1rem;
   color: var(--muted); font-size: 0.8125rem;
   flex-wrap: wrap;
 }
 footer a { color: var(--muted); border-bottom-color: transparent; }
 footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
-.sig-link { font-variant-numeric: tabular-nums; opacity: 0.6; }
+/* Push signature to the right edge so left side groups the site info
+   (inspiration · privacy · github) and right side is the author note.
+   Bumped opacity + arrow affordance so the link reads as clickable. */
+.sig-link { margin-left: auto; font-variant-numeric: tabular-nums; opacity: 0.85; }
 .sig-link:hover { opacity: 1; }
 
 /* ------- responsive ------- */
