@@ -1,0 +1,7 @@
+[
+  {"id":"1","q":"Will Donald Trump win the 2024 US Presidential Election?","o":1,"c":"US Politics","s":"Presidential Elections","v":1531479000,"t":"2024-11-06","slug":"will-donald-trump-win-the-2024-us-presidential-election","p1":0.92,"p7":0.58,"p30":0.54},
+  {"id":"2","q":"Will BTC reach $200k by end of 2025?","o":0,"c":"Crypto","s":"Price Predictions","v":12500000,"t":"2025-12-31","slug":"btc-200k-2025","p1":0.04,"p7":0.08,"p30":0.15},
+  {"id":"3","q":"Will GPT-5 be released in 2025?","o":1,"c":"AI & Tech","s":"Model Releases & Benchmarks","v":450000,"t":"2025-08-07","slug":"gpt5-2025","p1":0.98,"p7":0.72,"p30":0.45},
+  {"id":"4","q":"Will the Chiefs win Super Bowl LIX?","o":0,"c":"Sports","s":"NFL","v":98000000,"t":"2025-02-09","slug":"chiefs-sbliX","p1":0.42,"p7":0.45,"p30":0.48},
+  {"id":"5","q":"Will Fed cut rates in September 2024?","o":1,"c":"Economy & Finance","s":"Monetary Policy","v":3200000,"t":"2024-09-18","slug":"fed-sept-2024","p1":0.99,"p7":0.96,"p30":0.62}
+]

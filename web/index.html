@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>predictopoly</title>
+<meta name="description" content="Calibration training on resolved Polymarket questions.">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<!-- Open Graph / Twitter cards: how the site renders when pasted into chats. -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://predictopoly.com/">
+<meta property="og:title" content="predictopoly">
+<meta property="og:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
+<meta property="og:image" content="https://predictopoly.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="predictopoly">
+<meta name="twitter:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
+<meta name="twitter:image" content="https://predictopoly.com/og-image.png">
+
+<link rel="stylesheet" href="style.css?v=8">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="#" class="wordmark" id="nav-home">predictopoly</a>
+  <nav class="topnav">
+    <button class="navlink current" data-view="play">Play</button>
+    <button class="navlink" data-view="stats">Stats</button>
+  </nav>
+  <div class="session" id="session-pill" title="Points earned today (resets at midnight)">
+    <span class="session-lbl">today</span>
+    <span class="session-val" id="session-val">0</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="deck-strip">
+    <span class="deck-prefix">deck:</span>
+    <span id="deck-label">edition picks · 84 questions</span>
+    <button id="btn-open-deck" class="deck-change">change <span class="arrow">↗</span></button>
+  </div>
+
+  <aside id="onboarding" class="onboarding hidden">
+    <span>Real Polymarket questions that already resolved. Predict the probability of <b>YES</b>, reveal the outcome, earn points based on calibration plus a bonus if you beat the market.</span>
+    <button id="btn-onboarding-dismiss" class="onboarding-close" title="dismiss">✕</button>
+  </aside>
+
+  <section id="view-play">
+
+    <div class="meta-line">
+      <span id="m-cat" class="cat"></span>
+      <span class="sep">·</span>
+      <span id="m-sub"></span>
+      <span class="sep">·</span>
+      <span id="m-date"></span>
+      <span class="sep">·</span>
+      <span id="m-vol"></span>
+    </div>
+
+    <h2 id="m-question" class="question"></h2>
+    <div id="m-desc" class="desc collapsed hidden"></div>
+    <button id="btn-desc-toggle" class="desc-toggle hidden">show description ↓</button>
+
+    <div class="predict" id="predict-block">
+      <div class="predict-label">your probability that <b>YES</b><span id="m-yn" class="yn"></span></div>
+
+      <div class="slider-wrap">
+        <div class="bubble-track">
+          <div id="p-bubble" class="bubble" style="--p:0.5">50%</div>
+        </div>
+        <input id="p-slider" type="range" min="0" max="100" step="1" value="50" autocomplete="off">
+        <div class="slider-hint">
+          <span>0% No</span>
+          <span>50%</span>
+          <span>100% Yes</span>
+        </div>
+      </div>
+
+      <div class="predict-actions">
+        <button id="btn-submit" class="primary">Lock it in <span class="arrow">→</span></button>
+        <button id="btn-skip" class="text">skip</button>
+      </div>
+    </div>
+
+    <div class="reveal hidden" id="reveal-block">
+
+      <div id="r-callout" class="callout">
+        <div class="callout-row">
+          <span class="callout-tag">resolved</span>
+          <span id="r-outcome" class="callout-outcome"></span>
+        </div>
+
+        <div class="callout-row points-row">
+          <span id="r-points" class="points-num"></span>
+          <span id="r-breakdown" class="points-breakdown"></span>
+        </div>
+
+        <div id="r-percentile" class="percentile hidden">
+          You scored higher than <b id="r-percentile-val"></b> of players on this question.
+        </div>
+      </div>
+
+      <div class="bars" id="bars"></div>
+
+      <div class="reveal-foot">
+        <a id="r-link" href="#" target="_blank" rel="noopener" class="poly-link">View on Polymarket <span class="arrow">→</span></a>
+        <span id="r-meta-foot" class="muted small"></span>
+      </div>
+
+      <div class="reveal-actions">
+        <button id="btn-next" class="primary">Next question <span class="arrow">→</span></button>
+      </div>
+    </div>
+
+  </section>
+
+  <section id="view-stats" class="hidden">
+    <h2 class="page-title">Stats</h2>
+
+    <div class="stat-grid">
+      <div class="stat">
+        <span class="stat-lbl">predicted</span>
+        <span class="stat-val" id="s-count">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-lbl">lifetime points</span>
+        <span class="stat-val" id="s-points">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-lbl">avg / question</span>
+        <span class="stat-val" id="s-ppq">-</span>
+      </div>
+    </div>
+
+    <details class="for-nerds">
+      <summary>For nerds: Brier, log, market</summary>
+      <div class="stat-grid">
+        <div class="stat"><span class="stat-lbl">avg brier</span><span class="stat-val" id="s-brier">-</span></div>
+        <div class="stat"><span class="stat-lbl">avg log</span><span class="stat-val" id="s-log">-</span></div>
+        <div class="stat"><span class="stat-lbl">vs market</span><span class="stat-val" id="s-vs-mkt">-</span></div>
+      </div>
+    </details>
+
+    <h3>Reliability</h3>
+    <p class="muted small">Each dot is a probability bucket (e.g. all your 60-70% calls). Closer to the dashed line = better calibrated.</p>
+    <div class="chart-wrap"><canvas id="reliability"></canvas></div>
+
+    <h3>By category</h3>
+    <div id="s-by-cat" class="by-cat"></div>
+
+    <div class="reset-row">
+      <button id="btn-reset" class="ghost">Reset all predictions</button>
+    </div>
+  </section>
+
+</main>
+
+<div id="deck-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Choose your deck</h2>
+      <button id="btn-deck-close" class="modal-close" title="close">✕</button>
+    </div>
+    <p class="muted small modal-help">Pick the categories you want and filter by market volume. Changes apply instantly.</p>
+
+    <div class="presets" id="deck-presets"></div>
+
+    <div id="deck-grid" class="deck-grid"></div>
+
+    <div class="vol-block">
+      <div class="filter-label">minimum volume <span class="muted" id="vol-label">$10,000</span></div>
+      <input id="vol-slider" type="range" min="0" max="5" step="1" value="4">
+      <div class="vol-ticks">
+        <span>$0</span><span>$100</span><span>$1k</span><span>$10k</span><span>$100k</span><span>$1M</span>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <span id="deck-pool-info" class="muted small"></span>
+      <button id="btn-deck-done" class="primary">Done</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="muted small">Inspired by <a href="https://sage.ora.cl" target="_blank" rel="noopener">Sage</a> (and their <a href="https://www.quantifiedintuitions.org/calibration" target="_blank" rel="noopener">Quantified Intuitions</a>).</span>
+  <span class="muted small footer-priv">Your predictions stay in this browser. No accounts, no tracking.</span>
+  <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">- ac</a>
+</footer>
+
+<script src="app.js?v=19" defer></script>
+</body>
+</html>
