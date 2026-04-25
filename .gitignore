@@ -17,3 +17,5 @@ data/classification_progress.jsonl
 scripts/hot_candidates*.json
 scripts/hot_picks_with_reasons.json
 scripts/hot_picks_v2_reasons.json
+
+.wrangler/

@@ -25,6 +25,10 @@ OUT_TAXONOMY = WEB / "data" / "taxonomy.json"
 # fetch all shards in parallel and merge.
 DESC_SHARDS = 4
 OUT_DESCRIPTIONS = [WEB / "data" / f"descriptions-{i}.json" for i in range(DESC_SHARDS)]
+# Polymarket URL slugs (~2 MB raw / ~400KB brotli) - only used on the reveal
+# screen's "view on Polymarket" link, so lazy-loaded the same way descriptions
+# are. Single file since well under the 25 MiB cap.
+OUT_SLUGS = WEB / "data" / "slugs.json"
 
 
 def load_descriptions():
@@ -107,11 +111,11 @@ def main():
             "s": sub,                         # subcategory
             "v": round(float(row.volume), 0) if not pd.isna(row.volume) else 0,
             "t": str(row.closedTime)[:10],    # close date (YYYY-MM-DD)
-            "slug": str(row.slug),
             "p1": p1,                         # market price 1d before close
             "p7": p7,                         # market price 7d before close
             "p30": p30,                       # market price 30d before close
         }
+        rec["_slug"] = str(row.slug)  # split out below into slugs.json (lazy-loaded)
         if desc_info.get("start"):
             rec["ts"] = desc_info["start"]    # start date (YYYY-MM-DD)
         yn = yes_label(desc_info.get("outcomes"))
@@ -127,6 +131,7 @@ def main():
     # client lazy-loads this file in the background after first paint.
     desc_shards = [{} for _ in range(DESC_SHARDS)]
     desc_total = 0
+    slug_map = {}
     for rec in out:
         info = descs.get(rec["id"], {})
         d_text = info.get("d")
@@ -137,11 +142,16 @@ def main():
                 idx = sum(rec["id"].encode()) % DESC_SHARDS
             desc_shards[idx][rec["id"]] = d_text
             desc_total += 1
+        slug = rec.pop("_slug", None)
+        if slug:
+            slug_map[rec["id"]] = slug
 
     WEB.mkdir(exist_ok=True)
     (WEB / "data").mkdir(exist_ok=True)
     with OUT_MARKETS.open("w") as f:
         json.dump(out, f, separators=(",", ":"))
+    with OUT_SLUGS.open("w") as f:
+        json.dump(slug_map, f, separators=(",", ":"))
     for path, shard in zip(OUT_DESCRIPTIONS, desc_shards):
         with path.open("w") as f:
             json.dump(shard, f, separators=(",", ":"))
@@ -165,7 +175,9 @@ def main():
         json.dump(taxonomy_out, f, indent=2)
 
     size_mb = OUT_MARKETS.stat().st_size / 1024 / 1024
+    slugs_mb = OUT_SLUGS.stat().st_size / 1024 / 1024
     print(f"Wrote {OUT_MARKETS} ({len(out)} markets, {size_mb:.2f} MB)", file=sys.stderr)
+    print(f"Wrote {OUT_SLUGS.name} ({len(slug_map)} slugs, {slugs_mb:.2f} MB)", file=sys.stderr)
     for path in OUT_DESCRIPTIONS:
         mb = path.stat().st_size / 1024 / 1024
         print(f"Wrote {path.name} ({mb:.2f} MB)", file=sys.stderr)

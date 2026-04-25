@@ -77,6 +77,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   let taxonomy  = {};
   let descs     = {};       // id -> description text. Lazy-loaded after first paint.
   let descsReady = false;
+  let slugs     = {};       // id -> polymarket slug. Lazy-loaded after first paint.
   let history   = loadHistory();
   let prefs     = loadPrefs();
   let current   = null;     // currently displayed market
@@ -105,7 +106,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- data -------
   // Cache-bust by app version so taxonomy revisions actually reach the browser.
-  const DATA_V = "12";
+  const DATA_V = "13";
   async function loadData() {
     const [mRes, tRes] = await Promise.all([
       fetch(`data/markets.json?v=${DATA_V}`),
@@ -120,6 +121,24 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // files at 25 MiB and the full blob is ~25.1). Fetched in parallel after
   // first paint, merged into one map. If the user is on a question when its
   // shard lands we patch the rendered text in.
+  // Slugs (~2MB raw / ~400KB brotli) ride alongside descriptions in the
+  // background. Single file because well under the 25 MiB Pages cap.
+  async function loadSlugs() {
+    try {
+      const res = await fetch(`data/slugs.json?v=${DATA_V}`);
+      if (!res.ok) return;
+      slugs = await res.json();
+      // Patch the reveal link if reveal panel is currently visible.
+      if (current && slugs[current.id]) {
+        const link = $("r-link");
+        if (link) {
+          link.href = `https://polymarket.com/market/${slugs[current.id]}`;
+          link.classList.remove("hidden");
+        }
+      }
+    } catch { /* offline / 404 - reveal screen hides the link */ }
+  }
+
   const DESC_SHARDS = 4;
   async function loadDescriptions() {
     let landed = 0;
@@ -329,7 +348,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("m-sub").textContent  = m.s || "";
     $("m-date").textContent = "resolved " + fmtDate(m.t);
     $("m-vol").textContent  = fmtVol(m.v);
-    $("m-question").textContent = m.q || "";
+    const qEl = $("m-question");
+    qEl.textContent = m.q || "";
+    qEl.classList.remove("is-loading");
     $("m-yn").textContent = m.yn ? `(YES = ${m.yn})` : "";
 
     // description (may be empty if descriptions.json hasn't loaded yet)
@@ -464,8 +485,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     // hide percentile until backend responds (or fails)
     $("r-percentile").classList.add("hidden");
 
-    // link + meta
-    $("r-link").href = `https://polymarket.com/market/${m.slug}`;
+    // link + meta - slug is lazy-loaded, hide link until it lands
+    const link = $("r-link");
+    const slug = slugs[m.id];
+    if (slug) {
+      link.href = `https://polymarket.com/market/${slug}`;
+      link.classList.remove("hidden");
+    } else {
+      link.removeAttribute("href");
+      link.classList.add("hidden");
+    }
     const mpTxt = mp ? `· market said ${(mp.p * 100).toFixed(0)}% (${mp.label})` : "";
     $("r-meta-foot").textContent = `resolved ${fmtDate(m.t)} ${mpTxt}`.trim();
   }
@@ -951,7 +980,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
     // Fire the description fetch after first paint so the page is interactive
     // immediately. requestIdleCallback when available, otherwise a short timeout.
-    const kick = () => loadDescriptions();
+    const kick = () => { loadDescriptions(); loadSlugs(); };
     if ("requestIdleCallback" in window) requestIdleCallback(kick, { timeout: 1500 });
     else setTimeout(kick, 200);
   })();
