@@ -187,15 +187,10 @@ main {
   pointer-events: none;
 }
 .desc-toggle {
-  /* Right-align on desktop. The description text trails off mid-line on the
-     right; sticking the toggle there fills the dead space and matches where
-     the eye lands at the end of reading. Mobile overrides back to a tight
-     left-aligned single line so the question still hugs the slider. */
   font-size: 0.8125rem; color: var(--muted);
   padding: 0.25rem 0;
-  margin: 0 0 1rem auto;
+  margin: 0 0 1rem;
   display: block;
-  width: fit-content;
 }
 .desc-toggle:hover { color: var(--accent); }
 
@@ -661,7 +656,7 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
   .question { font-size: 1.25rem; }
   /* Phone layout: kill the description-preview gap so the question hugs
      the slider. JS also defaults to hidden description here. */
-  .desc-toggle { padding: 0.125rem 0 0 0; margin: 0; width: auto; }
+  .desc-toggle { padding: 0.125rem 0 0 0; margin: 0; }
   .predict { margin-top: 1.25rem; }
   .predict-label { margin-bottom: 1.25rem; }
   .points-num { font-size: 2rem; }
