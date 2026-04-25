@@ -105,7 +105,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- data -------
   // Cache-bust by app version so taxonomy revisions actually reach the browser.
-  const DATA_V = "11";
+  const DATA_V = "12";
   async function loadData() {
     const [mRes, tRes] = await Promise.all([
       fetch(`data/markets.json?v=${DATA_V}`),
@@ -116,19 +116,26 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     taxonomy = await tRes.json();
   }
 
-  // Descriptions live in their own file (~25MB raw / 4.6MB gz) so first paint
-  // doesn't block on them. Fired after the first question is shown; once it
-  // resolves, any subsequent question shows the full description, and if the
-  // user happens to be on a question right when it lands we patch that one in.
+  // Descriptions are sharded into 4 files (Cloudflare Pages caps individual
+  // files at 25 MiB and the full blob is ~25.1). Fetched in parallel after
+  // first paint, merged into one map. If the user is on a question when its
+  // shard lands we patch the rendered text in.
+  const DESC_SHARDS = 4;
   async function loadDescriptions() {
-    try {
-      const res = await fetch(`data/descriptions.json?v=${DATA_V}`);
-      if (!res.ok) return;
-      descs = await res.json();
-      descsReady = true;
-      // Patch the currently visible question if its description just arrived.
-      if (current && descs[current.id]) renderDescription(descs[current.id]);
-    } catch { /* offline / 404 - degrade silently, descriptions just won't show */ }
+    let landed = 0;
+    await Promise.all(
+      Array.from({ length: DESC_SHARDS }, (_, i) =>
+        fetch(`data/descriptions-${i}.json?v=${DATA_V}`)
+          .then(r => r.ok ? r.json() : {})
+          .then(shard => {
+            Object.assign(descs, shard);
+            landed += 1;
+            if (current && descs[current.id]) renderDescription(descs[current.id]);
+          })
+          .catch(() => { /* offline / 404 - skip this shard */ })
+      )
+    );
+    descsReady = landed > 0;
   }
 
   // ------- formatters -------

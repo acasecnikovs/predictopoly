@@ -20,7 +20,11 @@ INPUT_PRICES = DATA / "lookback_prices.parquet"
 INPUT_DESCS = DATA / "descriptions.jsonl"  # optional, from 05_fetch_descriptions
 OUT_MARKETS = WEB / "data" / "markets.json"
 OUT_TAXONOMY = WEB / "data" / "taxonomy.json"
-OUT_DESCRIPTIONS = WEB / "data" / "descriptions.json"
+# Cloudflare Pages caps individual files at 25 MiB. The full descriptions
+# blob is ~25.1 MiB, so shard by `int(id) % DESC_SHARDS` and have the client
+# fetch all shards in parallel and merge.
+DESC_SHARDS = 4
+OUT_DESCRIPTIONS = [WEB / "data" / f"descriptions-{i}.json" for i in range(DESC_SHARDS)]
 
 
 def load_descriptions():
@@ -121,19 +125,26 @@ def main():
     # Build separate descriptions map keyed by id. Pulled out of markets.json
     # so the initial page load doesn't pay for ~30MB of long-form text - the
     # client lazy-loads this file in the background after first paint.
-    desc_map = {}
+    desc_shards = [{} for _ in range(DESC_SHARDS)]
+    desc_total = 0
     for rec in out:
         info = descs.get(rec["id"], {})
         d_text = info.get("d")
         if d_text:
-            desc_map[rec["id"]] = d_text
+            try:
+                idx = int(rec["id"]) % DESC_SHARDS
+            except ValueError:
+                idx = sum(rec["id"].encode()) % DESC_SHARDS
+            desc_shards[idx][rec["id"]] = d_text
+            desc_total += 1
 
     WEB.mkdir(exist_ok=True)
     (WEB / "data").mkdir(exist_ok=True)
     with OUT_MARKETS.open("w") as f:
         json.dump(out, f, separators=(",", ":"))
-    with OUT_DESCRIPTIONS.open("w") as f:
-        json.dump(desc_map, f, separators=(",", ":"))
+    for path, shard in zip(OUT_DESCRIPTIONS, desc_shards):
+        with path.open("w") as f:
+            json.dump(shard, f, separators=(",", ":"))
 
     # Build taxonomy from observed data (not the proposal - we trust the
     # classifier's actual output in case it hallucinated buckets)
@@ -154,9 +165,11 @@ def main():
         json.dump(taxonomy_out, f, indent=2)
 
     size_mb = OUT_MARKETS.stat().st_size / 1024 / 1024
-    desc_mb = OUT_DESCRIPTIONS.stat().st_size / 1024 / 1024
     print(f"Wrote {OUT_MARKETS} ({len(out)} markets, {size_mb:.2f} MB)", file=sys.stderr)
-    print(f"Wrote {OUT_DESCRIPTIONS} ({len(desc_map)} descriptions, {desc_mb:.2f} MB)", file=sys.stderr)
+    for path in OUT_DESCRIPTIONS:
+        mb = path.stat().st_size / 1024 / 1024
+        print(f"Wrote {path.name} ({mb:.2f} MB)", file=sys.stderr)
+    print(f"Total descriptions: {desc_total} across {DESC_SHARDS} shards", file=sys.stderr)
     print(f"Wrote {OUT_TAXONOMY}", file=sys.stderr)
     print(f"\nCategory counts (by volume-weighted order):", file=sys.stderr)
     for c in ordered:
