@@ -188,16 +188,16 @@ main {
 }
 .desc-toggle {
   font-size: 0.8125rem; color: var(--muted);
-  padding: 0.125rem 0; margin: 0;
+  padding: 0.25rem 0 0 0.875rem; margin: 0 0 1.25rem;
   display: block;
 }
 .desc-toggle:hover { color: var(--accent); }
 
 /* ------- predict ------- */
 
-.predict { margin: 1.25rem 0 0; }
+.predict { margin: 1.5rem 0 0; }
 .predict-label {
-  font-size: 0.875rem; color: var(--muted); margin-bottom: 1.25rem;
+  font-size: 0.875rem; color: var(--muted); margin-bottom: 1.5rem;
 }
 .predict-label b { color: var(--text); font-weight: 600; }
 .yn { color: var(--muted); margin-left: 0.5rem; font-size: 0.8125rem; }
@@ -653,6 +653,11 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
   main { padding: 0.5rem 1rem 4rem; }
   footer { padding: 1.25rem 1rem 2rem; }
   .question { font-size: 1.25rem; }
+  /* Phone layout: kill the description-preview gap so the question hugs
+     the slider. JS also defaults to hidden description here. */
+  .desc-toggle { padding: 0.125rem 0 0 0; margin: 0; }
+  .predict { margin-top: 1.25rem; }
+  .predict-label { margin-bottom: 1.25rem; }
   .points-num { font-size: 2rem; }
   .stat-grid { grid-template-columns: 1fr 1fr; gap: 1rem; }
   .deck-grid { grid-template-columns: 1fr 1fr; }

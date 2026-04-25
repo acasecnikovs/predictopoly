@@ -422,22 +422,41 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     requestAnimationFrame(() => slider.focus({ preventScroll: true }));
   }
 
+  // Mobile-first viewport check, mirrored in style.css's @media block. On
+  // phones the description is hidden so the question hugs the slider; on
+  // desktop we surface a 3-line collapsed preview so the page doesn't feel
+  // half-empty between the predict block and the footer.
+  const MOBILE_MQ = "(max-width: 600px)";
+
   function renderDescription(text) {
     const descEl = $("m-desc");
     const toggleBtn = $("btn-desc-toggle");
     const t = (text || "").trim();
-    if (t.length > 0) {
-      // Description is hidden by default. Visually the question wants to feel
-      // grouped with the slider, not the deck strip - a 3-line preview between
-      // them broke that grouping. Toggle reveals the full text on demand.
-      descEl.textContent = t;
-      descEl.classList.remove("collapsed");
-      descEl.classList.add("hidden");
-      toggleBtn.classList.remove("hidden");
-      toggleBtn.textContent = "show description ↓";
-    } else {
+
+    if (!t.length) {
       descEl.classList.add("hidden");
       toggleBtn.classList.add("hidden");
+      return;
+    }
+
+    descEl.textContent = t;
+    toggleBtn.classList.remove("hidden");
+    toggleBtn.textContent = "show description ↓";
+
+    if (window.matchMedia(MOBILE_MQ).matches) {
+      descEl.classList.add("hidden");
+      descEl.classList.remove("collapsed");
+    } else {
+      descEl.classList.remove("hidden");
+      descEl.classList.add("collapsed");
+      // Short descriptions fit without scroll - drop the fade and the toggle
+      // entirely so the toggle row doesn't lie about there being more text.
+      requestAnimationFrame(() => {
+        if (descEl.scrollHeight <= descEl.clientHeight + 2) {
+          descEl.classList.remove("collapsed");
+          toggleBtn.classList.add("hidden");
+        }
+      });
     }
   }
 
@@ -1003,11 +1022,20 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("btn-skip").addEventListener("click", skipQuestion);
     $("btn-next").addEventListener("click", nextQuestion);
 
-    // description toggle
+    // description toggle - on phone we toggle hidden vs fully shown; on
+    // desktop we toggle the collapsed-with-fade preview vs fully expanded.
     $("btn-desc-toggle").addEventListener("click", () => {
       const d = $("m-desc");
-      const nowHidden = d.classList.toggle("hidden");
-      $("btn-desc-toggle").textContent = nowHidden ? "show description ↓" : "hide description ↑";
+      let willShow;
+      if (window.matchMedia(MOBILE_MQ).matches) {
+        const nowHidden = d.classList.toggle("hidden");
+        d.classList.remove("collapsed");
+        willShow = !nowHidden;
+      } else {
+        const collapsed = d.classList.toggle("collapsed");
+        willShow = !collapsed;
+      }
+      $("btn-desc-toggle").textContent = willShow ? "hide description ↑" : "show description ↓";
     });
 
     // nav
