@@ -119,7 +119,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- data -------
   // Cache-bust by app version so taxonomy revisions actually reach the browser.
-  const DATA_V = "15";
+  const DATA_V = "16";
 
   // First paint only needs the 87-question hot pack (~7 KB brotli). The full
   // markets.json (1.3 MB brotli) loads in the background and swaps in when
@@ -954,6 +954,15 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- init -------
   (async () => {
+    // Fire ALL background fetches in parallel from the start. The hot pack
+    // wins for fresh visits (mode="hot"); custom-deck users wait for the full
+    // markets fetch but it runs concurrently with descriptions and slugs, so
+    // by the time first render happens descriptions for non-hot questions
+    // are already in flight or done.
+    const fullMarketsKick = loadFullMarkets();
+    loadDescriptions();
+    loadSlugs();
+
     try {
       await loadFastData();
     } catch (e) {
@@ -962,9 +971,12 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     }
 
     // Custom-mode users land on filters that the hot-only pack can't satisfy,
-    // so block on the full set before the first render.
+    // so block on the full set before the first render. The fetch already
+    // started above in parallel with the hot pack.
     if (prefs.mode === "custom" && prefs.subs) {
-      await loadFullMarkets();
+      const qEl = $("m-question");
+      if (qEl) qEl.textContent = "Loading your custom deck...";
+      await fullMarketsKick;
     }
 
     // Fresh users land in "hot" mode = curated allowlist of ~130 hand-picked
@@ -1054,13 +1066,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       else if (e.key.toLowerCase() === "s" && !revealOpen) { skipQuestion(); }
     });
 
-    // first question
+    // first question - background fetches were kicked at the very top of init
     nextQuestion();
-
-    // Fire the description fetch after first paint so the page is interactive
-    // immediately. requestIdleCallback when available, otherwise a short timeout.
-    const kick = () => { loadFullMarkets(); loadDescriptions(); loadSlugs(); };
-    if ("requestIdleCallback" in window) requestIdleCallback(kick, { timeout: 1500 });
-    else setTimeout(kick, 200);
   })();
 })();
