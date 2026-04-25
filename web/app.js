@@ -426,19 +426,15 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     const descEl = $("m-desc");
     const toggleBtn = $("btn-desc-toggle");
     const t = (text || "").trim();
-    descEl.classList.add("collapsed");
     if (t.length > 0) {
+      // Description is hidden by default. Visually the question wants to feel
+      // grouped with the slider, not the deck strip - a 3-line preview between
+      // them broke that grouping. Toggle reveals the full text on demand.
       descEl.textContent = t;
-      descEl.classList.remove("hidden");
-      requestAnimationFrame(() => {
-        if (descEl.scrollHeight > descEl.clientHeight + 2) {
-          toggleBtn.classList.remove("hidden");
-          toggleBtn.textContent = "show description ↓";
-        } else {
-          toggleBtn.classList.add("hidden");
-          descEl.classList.remove("collapsed");
-        }
-      });
+      descEl.classList.remove("collapsed");
+      descEl.classList.add("hidden");
+      toggleBtn.classList.remove("hidden");
+      toggleBtn.textContent = "show description ↓";
     } else {
       descEl.classList.add("hidden");
       toggleBtn.classList.add("hidden");
@@ -1010,8 +1006,8 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     // description toggle
     $("btn-desc-toggle").addEventListener("click", () => {
       const d = $("m-desc");
-      const collapsed = d.classList.toggle("collapsed");
-      $("btn-desc-toggle").textContent = collapsed ? "show description ↓" : "hide description ↑";
+      const nowHidden = d.classList.toggle("hidden");
+      $("btn-desc-toggle").textContent = nowHidden ? "show description ↓" : "hide description ↑";
     });
 
     // nav
