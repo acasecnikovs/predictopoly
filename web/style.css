@@ -642,7 +642,9 @@ footer {
   color: var(--muted); font-size: 0.8125rem;
   flex-wrap: wrap;
 }
-footer a { color: var(--muted); border-bottom-color: transparent; }
+/* Keep footer text muted but let the global underline through so links
+   are obviously links. Without it, every footer link looked like prose. */
+footer a { color: var(--muted); border-bottom-color: rgba(154,160,170,0.35); }
 footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 /* Push signature to the right edge so left side groups the site info
    (inspiration · privacy · github) and right side is the author note.
