@@ -6,6 +6,7 @@ filter dropdowns.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -72,6 +73,22 @@ def yes_label(outcomes_json):
     return first
 
 
+# Polymarket sometimes ships binary markets that are actually a slice of a
+# multi-candidate event ("Who will win white women?" with outcomes
+# ["Harris","Trump"]). The bare question is unanswerable as YES/NO without
+# knowing which side is YES. When we have a yn label, rewrite the leading
+# "Who will win" to "Will <yn> win" so the question is self-contained.
+_WHO_WILL_WIN_RE = re.compile(r"^who will win\b", re.IGNORECASE)
+
+
+def disambiguate_question(q: str, yn: str) -> str:
+    if not yn or not q:
+        return q
+    if _WHO_WILL_WIN_RE.match(q):
+        return _WHO_WILL_WIN_RE.sub(f"Will {yn} win", q, count=1)
+    return q
+
+
 def main():
     if not INPUT_MARKETS.exists():
         sys.exit(f"{INPUT_MARKETS} missing - run 02_classify_markets.py first")
@@ -121,6 +138,7 @@ def main():
         yn = yes_label(desc_info.get("outcomes"))
         if yn:
             rec["yn"] = yn                    # plain-English label for what YES means
+            rec["q"] = disambiguate_question(rec["q"], yn)
         out.append(rec)
 
     # Sort by volume desc so "top N" filtering gives good default markets
