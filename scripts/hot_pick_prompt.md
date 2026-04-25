@@ -1,7 +1,7 @@
 # Task: pick the 200 best calibration questions
 
 You are curating the opening experience of a calibration-training app
-(kelly.app). New users see resolved Polymarket questions, predict the
+(predictopoly). New users see resolved Polymarket questions, predict the
 probability of YES, then see the actual outcome and how the market priced it.
 
 The goal of "Hot picks" (the default preset for fresh users) is to make a
