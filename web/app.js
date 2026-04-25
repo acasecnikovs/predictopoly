@@ -82,6 +82,19 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   let prefs     = loadPrefs();
   let current   = null;     // currently displayed market
   let chart     = null;     // chart.js instance
+  let chartJsPromise = null;
+  function loadChartJs() {
+    if (typeof Chart !== "undefined") return Promise.resolve(true);
+    if (chartJsPromise) return chartJsPromise;
+    chartJsPromise = new Promise((resolve) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+      s.onload = () => resolve(true);
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+    });
+    return chartJsPromise;
+  }
   let currentView = "play"; // play | stats
 
   // ------- storage -------
@@ -106,15 +119,40 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- data -------
   // Cache-bust by app version so taxonomy revisions actually reach the browser.
-  const DATA_V = "13";
-  async function loadData() {
+  const DATA_V = "14";
+
+  // First paint only needs the 87-question hot pack (~7 KB brotli). The full
+  // markets.json (1.3 MB brotli) loads in the background and swaps in when
+  // the user actually needs more (deck modal, stats view, hot deck exhausted).
+  let marketsAreFastPack = true;
+  let fullMarketsPromise = null;
+
+  async function loadFastData() {
     const [mRes, tRes] = await Promise.all([
-      fetch(`data/markets.json?v=${DATA_V}`),
+      fetch(`data/markets-hot.json?v=${DATA_V}`),
       fetch(`data/taxonomy.json?v=${DATA_V}`),
     ]);
     if (!mRes.ok || !tRes.ok) throw new Error("data fetch failed");
     markets = await mRes.json();
     taxonomy = await tRes.json();
+  }
+
+  function loadFullMarkets() {
+    if (fullMarketsPromise) return fullMarketsPromise;
+    fullMarketsPromise = (async () => {
+      try {
+        const res = await fetch(`data/markets.json?v=${DATA_V}`);
+        if (!res.ok) return false;
+        const full = await res.json();
+        // Preserve any session-only state by replacing wholesale; ids are stable.
+        markets = full;
+        marketsAreFastPack = false;
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+    return fullMarketsPromise;
   }
 
   // Descriptions are sharded into 4 files (Cloudflare Pages caps individual
@@ -220,7 +258,15 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     });
     $$(".navlink").forEach((b) => b.classList.toggle("current", b.dataset.view === name));
     currentView = name;
-    if (name === "stats") renderStats();
+    if (name === "stats") {
+      loadChartJs(); // start fetching the chart lib in parallel with data
+      renderStats();
+      if (marketsAreFastPack) {
+        loadFullMarkets().then((ok) => {
+          if (ok && currentView === "stats") renderStats();
+        });
+      }
+    }
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
@@ -517,8 +563,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
 
   // ------- next / skip -------
-  function nextQuestion() {
-    const q = pickQuestion();
+  async function nextQuestion() {
+    let q = pickQuestion();
+    // Custom decks won't be satisfied by the hot-only fast pack. Block briefly
+    // for the full set if it's still in flight, then retry.
+    if (!q && marketsAreFastPack) {
+      await loadFullMarkets();
+      q = pickQuestion();
+    }
     if (!q) {
       alert("Out of questions matching your filters. Open the deck modal and broaden them.");
       openDeckModal();
@@ -535,6 +587,17 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     updateDeckPoolInfo();
     $("deck-modal").classList.remove("hidden");
     document.body.style.overflow = "hidden";
+    // Counts in the deck grid come from the markets array. Hot-only fast pack
+    // shows tiny numbers; pull the full set and re-render when it lands.
+    if (marketsAreFastPack) {
+      loadFullMarkets().then((ok) => {
+        if (!ok) return;
+        if ($("deck-modal").classList.contains("hidden")) return;
+        renderPresets();
+        renderDeckGrid();
+        updateDeckPoolInfo();
+      });
+    }
   }
 
   function applyPreset(presetId) {
@@ -796,7 +859,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       return { x, y, n: b.preds.length };
     }).filter(Boolean);
 
-    if (typeof Chart === "undefined") return; // chart.js still loading
+    if (typeof Chart === "undefined") {
+      loadChartJs().then((ok) => { if (ok && currentView === "stats") renderReliability(); });
+      return;
+    }
     const ctx = $("reliability").getContext("2d");
     if (chart) chart.destroy();
     chart = new Chart(ctx, {
@@ -882,10 +948,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // ------- init -------
   (async () => {
     try {
-      await loadData();
+      await loadFastData();
     } catch (e) {
-      $("view-play").innerHTML = '<h2>Could not load data</h2><p class="muted">Expected files at <code>web/data/markets.json</code> and <code>web/data/taxonomy.json</code>.</p>';
+      $("view-play").innerHTML = '<h2>Could not load data</h2><p class="muted">Expected files at <code>web/data/markets-hot.json</code> and <code>web/data/taxonomy.json</code>.</p>';
       return;
+    }
+
+    // Custom-mode users land on filters that the hot-only pack can't satisfy,
+    // so block on the full set before the first render.
+    if (prefs.mode === "custom" && prefs.subs) {
+      await loadFullMarkets();
     }
 
     // Fresh users land in "hot" mode = curated allowlist of ~130 hand-picked
@@ -980,7 +1052,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
     // Fire the description fetch after first paint so the page is interactive
     // immediately. requestIdleCallback when available, otherwise a short timeout.
-    const kick = () => { loadDescriptions(); loadSlugs(); };
+    const kick = () => { loadFullMarkets(); loadDescriptions(); loadSlugs(); };
     if ("requestIdleCallback" in window) requestIdleCallback(kick, { timeout: 1500 });
     else setTimeout(kick, 200);
   })();

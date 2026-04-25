@@ -22,8 +22,11 @@
 <meta name="twitter:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png">
 
-<link rel="stylesheet" href="style.css?v=9">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+<link rel="stylesheet" href="style.css?v=10">
+<link rel="preload" href="data/markets-hot.json?v=14" as="fetch" type="application/json" crossorigin>
+<link rel="preload" href="data/taxonomy.json?v=14" as="fetch" type="application/json" crossorigin>
+<!-- chart.js is loaded lazily by app.js when the user opens the stats view -->
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 </head>
 <body>
 
@@ -195,6 +198,6 @@
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">- ac</a>
 </footer>
 
-<script src="app.js?v=21" defer></script>
+<script src="app.js?v=22" defer></script>
 </body>
 </html>

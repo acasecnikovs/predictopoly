@@ -314,6 +314,15 @@ def main():
     with open(WEB / "markets.json", "w") as f:
         json.dump(markets, f, separators=(",", ":"))
 
+    # Hot-pack: tiny subset of just the curated questions, ~22 KB raw.
+    # Default deck on a fresh visit is "hot", so this is everything the client
+    # needs for the first paint. The full markets.json loads in the background.
+    hot_only = [m for m in markets if m.get("hot")]
+    with open(WEB / "markets-hot.json", "w") as f:
+        json.dump(hot_only, f, separators=(",", ":"))
+    hot_kb = (WEB / "markets-hot.json").stat().st_size / 1024
+    print(f"Hot pack:                                  {len(hot_only)} markets, {hot_kb:.1f} KB")
+
     # Rebuild taxonomy ordered by volume (sum of v within each group)
     tax_counts = {}
     tax_vol = {}
