@@ -1,0 +1,11 @@
+# Cloudflare Pages config. Pages Functions live under web/functions/ and
+# auto-route by path. D1 binding lets /api/percentile read+write the
+# predictions table without per-environment dashboard wiring.
+name = "predictopoly"
+compatibility_date = "2026-04-25"
+pages_build_output_dir = "web"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "predictopoly-stats"
+database_id = "361e2aac-d6b4-4a52-984d-a275779a362b"
