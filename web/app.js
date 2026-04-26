@@ -170,18 +170,32 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
   function savePending() { localStorage.setItem(LS_PENDING, JSON.stringify(pending)); }
 
+  // Resolved and active have different taxonomies (and active doesn't support
+  // hot/edition picks), so each dataMode owns its own deck state. We keep the
+  // CURRENT mode's deck on `prefs.mode`/`prefs.subs` (touched all over the
+  // codebase) and stash the inactive mode's deck under `prefs._decks` on every
+  // mode switch. Migration: legacy prefs without `_decks` keep their `mode`/
+  // `subs` as the current dataMode's deck; the other mode falls back to its
+  // sensible default the first time the user switches.
+  function deckDefaults(dataMode) {
+    return dataMode === "active"
+      ? { mode: "custom", subs: null }   // active has no hot pack; null subs = "All"
+      : { mode: "hot",    subs: null };  // resolved first-visit = curated edition picks
+  }
   function loadPrefs() {
     try {
       const p = JSON.parse(localStorage.getItem(LS_PREFS) || "{}");
       const vi = p.volIdx ?? 4;
       const dm = p.dataMode === "active" ? "active" : "resolved";
+      const decks = (p._decks && typeof p._decks === "object") ? p._decks : {};
       return {
         mode: p.mode || "hot",       // "hot" = curated allowlist, "custom" = subs-based
         subs: p.subs || null,
         volIdx: Math.max(0, Math.min(VOL_STEPS.length - 1, vi)),
         dataMode: dm,                // "resolved" | "active"
+        _decks: decks,               // { resolved?: {mode, subs}, active?: {mode, subs} }
       };
-    } catch { return { mode: "hot", subs: null, volIdx: 4, dataMode: "resolved" }; }
+    } catch { return { mode: "hot", subs: null, volIdx: 4, dataMode: "resolved", _decks: {} }; }
   }
   function savePrefs() { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); }
 
@@ -287,8 +301,28 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
 
   // Swap the global aliases to point at whichever dataset matches `mode`.
-  // `silent` skips re-rendering (used during init when callers will render).
+  // Also stash/restore per-mode deck state so picking a deck in active doesn't
+  // wipe the resolved deck and vice versa. `silent` skips re-rendering (used
+  // during init when callers will render).
+  function sanitizeSubs(subs, tax) {
+    if (!subs || !tax) return subs;
+    const cleaned = {};
+    for (const cat of Object.keys(tax)) {
+      const valid = new Set((tax[cat] || []).map((x) => x.sub));
+      const prev = subs[cat];
+      if (prev) cleaned[cat] = prev.filter((s) => valid.has(s));
+    }
+    return cleaned;
+  }
+
   function applyDataMode(mode, { silent = false } = {}) {
+    if (prefs.dataMode !== mode) {
+      if (!prefs._decks) prefs._decks = {};
+      prefs._decks[prefs.dataMode] = { mode: prefs.mode, subs: prefs.subs };
+      const next = prefs._decks[mode] || deckDefaults(mode);
+      prefs.mode = next.mode;
+      prefs.subs = next.subs;
+    }
     if (mode === "active") {
       markets = marketsActive;
       taxonomy = taxonomyActive;
@@ -297,6 +331,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       markets = marketsResolved;
       taxonomy = taxonomyResolved;
       slugs = slugsResolved;
+    }
+    // Drop stale cats/subs once the destination taxonomy is in scope.
+    if (prefs.mode === "custom" && prefs.subs && taxonomy) {
+      prefs.subs = sanitizeSubs(prefs.subs, taxonomy);
     }
     prefs.dataMode = mode;
     savePrefs();
@@ -1485,19 +1523,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       await fullMarketsKick;
     }
 
-    // Fresh users land in "hot" mode = curated allowlist of ~130 hand-picked
-    // questions, the strongest possible first impression. Power users can
-    // switch to a custom deck via the deck modal at any time.
-    if (prefs.mode === "custom" && prefs.subs) {
-      // sanitize stored subs: drop unknown cats / subs from older taxonomies
-      const cleaned = {};
-      for (const cat of Object.keys(taxonomy)) {
-        const valid = new Set((taxonomy[cat] || []).map((x) => x.sub));
-        const prev = prefs.subs[cat];
-        if (prev) cleaned[cat] = prev.filter((s) => valid.has(s));
-      }
-      prefs.subs = cleaned;
-    }
+    // Sub-sanitization is handled inside applyDataMode now (against the
+    // destination taxonomy), so legacy decks get cleaned exactly once - when
+    // the user is on that mode and the taxonomy is in scope.
     savePrefs();
 
     // If the user's last session ended in Active mode, load active data
