@@ -22,7 +22,7 @@
 <meta name="twitter:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png">
 
-<link rel="stylesheet" href="style.css?v=37">
+<link rel="stylesheet" href="style.css?v=38">
 <link rel="preload" href="data/markets-hot.json?v=18" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/taxonomy.json?v=18" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/descriptions-hot.json?v=18" as="fetch" type="application/json" crossorigin>
@@ -220,6 +220,8 @@
 
     <div class="reset-row">
       <button id="btn-reset" class="ghost">Reset all predictions</button>
+      <button id="btn-reset-all" class="ghost danger" title="Clear predictions, deck filters, welcome state - start over as a brand-new visitor">Reset everything (start fresh)</button>
+      <p class="muted small reset-hint">"Reset everything" wipes predictions <b>and</b> deck preferences, the Open tray, and the welcome guide - exactly the state a first-time visitor sees.</p>
     </div>
   </section>
 
@@ -260,6 +262,6 @@
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">by ac <span class="arrow">↗</span></a>
 </footer>
 
-<script src="app.js?v=35" defer></script>
+<script src="app.js?v=36" defer></script>
 </body>
 </html>

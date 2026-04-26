@@ -1322,6 +1322,23 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     nextQuestion();
   }
 
+  // Wipes every predictopoly key in localStorage (history, pending tray, deck
+  // prefs, onboarding flag) plus sessionStorage, then hard-reloads. Designed
+  // to land the user on the fresh first-visit state - same as opening the
+  // site in a clean browser. Useful for QA, demos, and "give me back the
+  // welcome card" without DevTools gymnastics.
+  function resetEverything() {
+    if (!confirm("This wipes ALL your predictions, deck filters, Open tray, and dismisses the welcome guide. You'll see exactly what a brand-new visitor sees. Continue?")) return;
+    try {
+      localStorage.removeItem(LS_HISTORY);
+      localStorage.removeItem(LS_PENDING);
+      localStorage.removeItem(LS_PREFS);
+      localStorage.removeItem(LS_ONBOARD);
+      sessionStorage.clear();
+    } catch { /* ignore - private mode etc., reload still helps */ }
+    location.reload();
+  }
+
   // ------- init -------
   (async () => {
     // Fire ALL background fetches in parallel from the start. The hot pack
@@ -1475,6 +1492,8 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
     // reset
     $("btn-reset").addEventListener("click", resetAll);
+    const resetAllBtn = $("btn-reset-all");
+    if (resetAllBtn) resetAllBtn.addEventListener("click", resetEverything);
 
     // Tap-to-toggle tooltips. Hover-capable devices already get them via
     // :hover, but @media (hover: none) hides ::after entirely on touch,
