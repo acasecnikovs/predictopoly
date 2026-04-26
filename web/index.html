@@ -22,7 +22,7 @@
 <meta name="twitter:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png">
 
-<link rel="stylesheet" href="style.css?v=34">
+<link rel="stylesheet" href="style.css?v=35">
 <link rel="preload" href="data/markets-hot.json?v=17" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/taxonomy.json?v=17" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/descriptions-hot.json?v=17" as="fetch" type="application/json" crossorigin>
@@ -55,12 +55,30 @@
     <button id="btn-open-deck" class="deck-change">change <span class="arrow">↗</span></button>
   </div>
 
-  <aside id="onboarding" class="onboarding hidden">
-    <span>Real Polymarket questions that already resolved. Predict the probability of <b>YES</b>, reveal the outcome, earn points based on calibration plus a bonus if you beat the market.</span>
-    <button id="btn-onboarding-dismiss" class="onboarding-close" title="dismiss">✕</button>
+  <aside id="welcome-card" class="welcome-card hidden">
+    <button id="btn-onboarding-dismiss" class="welcome-close" title="dismiss">✕</button>
+    <h2 class="welcome-title">Welcome to predictopoly</h2>
+    <p class="welcome-lede">Calibration training on real Polymarket questions. Pick the probability of <b>YES</b>, see how well-calibrated you are.</p>
+    <div class="welcome-modes">
+      <div class="welcome-mode">
+        <div class="welcome-mode-tag resolved">Resolved</div>
+        <p>~37k questions that already settled. Earn points for calibration plus a bonus if you beat the market price. Best for training - you get the answer immediately.</p>
+      </div>
+      <div class="welcome-mode">
+        <div class="welcome-mode-tag active">Active</div>
+        <p>Currently-open markets. See your call next to the live market price instantly, and your prediction goes to the <b>Open</b> tray to be scored when the market resolves.</p>
+      </div>
+    </div>
+    <button id="btn-welcome-go" class="primary welcome-go">Got it <span class="arrow">→</span></button>
   </aside>
 
   <section id="view-play">
+
+    <div id="empty-deck" class="empty-deck hidden">
+      <h3 class="empty-title">No questions match this deck</h3>
+      <p class="empty-body muted">Your filters returned an empty pool. Broaden categories or lower the volume floor.</p>
+      <button id="btn-empty-open-deck" class="primary">Change deck <span class="arrow">↗</span></button>
+    </div>
 
     <div class="meta-line">
       <span id="m-cat" class="cat"></span>
@@ -241,6 +259,6 @@
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">by ac <span class="arrow">↗</span></a>
 </footer>
 
-<script src="app.js?v=33" defer></script>
+<script src="app.js?v=34" defer></script>
 </body>
 </html>

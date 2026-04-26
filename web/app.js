@@ -19,6 +19,30 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   const VOL_STEPS  = [0, 100, 1000, 10000, 100000, 1000000];
 
+  // Canonical display order for categories. Both modes use this so toggling
+  // between Resolved and Active doesn't shuffle the deck modal cards. Any
+  // category that exists in the live taxonomy but isn't listed here gets
+  // appended at the end (defensive for future taxonomy additions).
+  const CANON_ORDER = [
+    "US Politics",
+    "World Politics",
+    "Economy & Finance",
+    "AI & Tech",
+    "Crypto",
+    "Sports",
+    "Culture & Media",
+    "Science",
+    "Miscellaneous",
+  ];
+
+  function orderedTaxKeys() {
+    const present = new Set(Object.keys(taxonomy));
+    const out = [];
+    for (const c of CANON_ORDER) if (present.has(c)) { out.push(c); present.delete(c); }
+    for (const c of present) out.push(c);
+    return out;
+  }
+
   // Deck presets - map preset id to a function that returns a {cat: [sub,...]}
   // shape using the live taxonomy. Order matters - first one is the "default" for fresh users.
   const PRESETS = [
@@ -505,7 +529,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       $("deck-label").textContent = `edition picks · ${fmtNum(total)} questions`;
       return;
     }
-    const allCats = Object.keys(taxonomy);
+    const allCats = orderedTaxKeys();
     const activeCats = allCats.filter((c) => catState(c) !== "off");
     const allOn = allCats.every((c) => catState(c) === "on");
     let label;
@@ -531,12 +555,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // ------- onboarding -------
   function renderOnboarding() {
     if (localStorage.getItem(LS_ONBOARD) === "1") return;
-    if (history.length > 0) return;
-    $("onboarding").classList.remove("hidden");
+    // Don't show the welcome card to returning users (we treat any prior
+    // resolved history OR pending active prediction as "they've used this").
+    if (history.length > 0 || pending.length > 0) return;
+    const card = $("welcome-card");
+    if (card) card.classList.remove("hidden");
   }
   function dismissOnboarding() {
     localStorage.setItem(LS_ONBOARD, "1");
-    $("onboarding").classList.add("hidden");
+    const card = $("welcome-card");
+    if (card) card.classList.add("hidden");
   }
 
   // ------- play view rendering -------
@@ -845,6 +873,22 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
 
   // ------- next / skip -------
+  function showEmptyDeck(show) {
+    const empty = $("empty-deck");
+    if (!empty) return;
+    empty.classList.toggle("hidden", !show);
+    // When the empty state is shown we hide the question/predict/reveal so
+    // the layout doesn't carry leftover content from a previous question.
+    const toToggle = ["m-question", "m-desc", "btn-desc-toggle", "predict-block",
+                      "reveal-block", "reveal-block-active"];
+    for (const id of toToggle) {
+      const el = $(id);
+      if (el) el.classList.toggle("hidden", show);
+    }
+    const meta = document.querySelector(".meta-line");
+    if (meta) meta.classList.toggle("hidden", show);
+  }
+
   async function nextQuestion() {
     let q = pickQuestion();
     // Custom decks won't be satisfied by the hot-only fast pack. Block briefly
@@ -855,10 +899,13 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       q = pickQuestion();
     }
     if (!q) {
-      alert("Out of questions matching your filters. Open the deck modal and broaden them.");
-      openDeckModal();
+      // Inline empty state - much better than a native alert + auto-opening
+      // the deck modal, which made the app feel broken on every empty pool.
+      showEmptyDeck(true);
+      current = null;
       return;
     }
+    showEmptyDeck(false);
     showQuestion(q);
   }
   function skipQuestion() { nextQuestion(); }
@@ -945,8 +992,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("deck-modal").classList.add("hidden");
     document.body.style.overflow = "";
     renderDeckStrip();
-    // if current question no longer matches the (possibly changed) filter, swap it
-    if (current && !marketPasses(current)) {
+    // Re-pick if current is gone (we were in empty state) or if the
+    // current question no longer matches the new filters. Either path
+    // also clears the empty-deck panel via nextQuestion's normal flow.
+    if (!current || !marketPasses(current)) {
       nextQuestion();
     }
   }
@@ -978,7 +1027,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   function renderDeckGrid() {
     const grid = $("deck-grid");
     grid.innerHTML = "";
-    const cats = Object.keys(taxonomy);
+    const cats = orderedTaxKeys();
     const playedByCat = {};
     for (const r of history) {
       if (!playedByCat[r.c]) playedByCat[r.c] = { n: 0, pts: 0 };
@@ -1372,8 +1421,12 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       updateDeckPoolInfo();
     });
 
-    // onboarding dismiss
+    // welcome card dismiss (X and "Got it" both close it)
     $("btn-onboarding-dismiss").addEventListener("click", dismissOnboarding);
+    $("btn-welcome-go").addEventListener("click", dismissOnboarding);
+
+    // empty-deck "Change deck" button just opens the deck modal
+    $("btn-empty-open-deck").addEventListener("click", openDeckModal);
 
     // reset
     $("btn-reset").addEventListener("click", resetAll);
