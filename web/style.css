@@ -181,6 +181,20 @@ main {
   z-index: 10;
 }
 .has-tip:hover::after, .has-tip:focus::after { opacity: 1; }
+/* Wider variant for multi-sentence tooltips (e.g. methodology notes).
+   Drops nowrap and caps width so it wraps to a small block instead of
+   running off-screen. */
+.has-tip-wide::after {
+  white-space: normal;
+  max-width: 260px;
+  line-height: 1.4;
+}
+/* Right-anchor variant for tooltips at the end of a line. Without this
+   the tooltip extends rightward from left:0 and clips the viewport. */
+.has-tip-right::after {
+  left: auto;
+  right: 0;
+}
 /* Touch devices have flaky :hover and the tooltip would overflow narrow
    viewports anyway. Hide on no-hover devices, fall back to bare dates. */
 @media (hover: none) {
@@ -392,6 +406,10 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   font-size: 0.875rem; color: var(--text);
 }
 .percentile b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.percentile-info {
+  font-size: 0.75rem; color: var(--muted);
+  margin-left: 0.15rem;
+}
 
 /* bars */
 
