@@ -142,6 +142,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // contribute one question per session.
   const seenEvents = new Set();
   let chart     = null;     // chart.js instance
+  // Stats scope: which slice of history the Stats view shows. Session-only
+  // (resets on reload) - stats are a glanceable snapshot, no need to persist.
+  let statsScope = "all";   // "all" | "resolved" | "active"
   let chartJsPromise = null;
   function loadChartJs() {
     if (typeof Chart !== "undefined") return Promise.resolve(true);
@@ -779,6 +782,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       ptsMkt: score.marketBeat,
       c: current.c, s: current.s,
       mkt30: current.p30, mkt7: current.p7, mkt1: current.p1,
+      origin: "resolved",   // Stats scope filter; legacy entries default to resolved.
       t: Date.now(),
     };
     history.push(rec);
@@ -1328,8 +1332,48 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
 
   // ------- stats -------
+  // Records get tagged with `origin: "resolved"` on submit; phase B.3 will
+  // tag auto-resolved active picks with `origin: "active"`. Legacy entries
+  // have no origin and are treated as resolved (only resolved mode could
+  // produce history before this field existed).
+  function statsHistory() {
+    if (statsScope === "all") return history;
+    if (statsScope === "active") return history.filter((r) => r.origin === "active");
+    return history.filter((r) => (r.origin || "resolved") === "resolved");
+  }
+
+  function renderStatsScopeUI() {
+    ["all", "resolved", "active"].forEach((s) => {
+      const btn = $("btn-stats-" + s);
+      if (!btn) return;
+      const cur = statsScope === s;
+      btn.classList.toggle("current", cur);
+      btn.setAttribute("aria-selected", cur ? "true" : "false");
+    });
+    const note = $("stats-scope-note");
+    if (!note) return;
+    if (statsScope === "active") {
+      const resolved = history.filter((r) => r.origin === "active").length;
+      const open = pending.length;
+      const bits = [];
+      if (open > 0) bits.push(`${open} open prediction${open === 1 ? "" : "s"} awaiting resolution`);
+      if (resolved === 0 && open === 0) {
+        bits.push("No active predictions yet - switch to Active mode and make one.");
+      } else if (resolved === 0 && open > 0) {
+        bits.push("Stats fill in once your open predictions resolve.");
+      }
+      note.textContent = bits.join(" · ");
+      note.classList.toggle("hidden", !bits.length);
+    } else {
+      note.textContent = "";
+      note.classList.add("hidden");
+    }
+  }
+
   function renderStats() {
-    const n = history.length;
+    renderStatsScopeUI();
+    const hist = statsHistory();
+    const n = hist.length;
     $("s-count").textContent = n;
     if (n === 0) {
       $("s-points").textContent = "0";
@@ -1337,14 +1381,17 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       $("s-brier").textContent = "-";
       $("s-log").textContent = "-";
       $("s-vs-mkt").textContent = "-";
-      $("s-by-cat").innerHTML = '<div class="muted small">Predict a few questions to see your calibration breakdown.</div>';
+      const emptyMsg = statsScope === "active"
+        ? 'Active scores show up here when your <b>Open</b> predictions resolve on Polymarket.'
+        : 'Predict a few questions to see your calibration breakdown.';
+      $("s-by-cat").innerHTML = `<div class="muted small">${emptyMsg}</div>`;
       if (chart) { chart.destroy(); chart = null; }
       return;
     }
-    const totalPts = history.reduce((s, r) => s + (r.pts || 0), 0);
+    const totalPts = hist.reduce((s, r) => s + (r.pts || 0), 0);
     const ppq = totalPts / n;
-    const meanBrier = history.reduce((s, r) => s + r.brier, 0) / n;
-    const meanLog = history.reduce((s, r) => s + r.log, 0) / n;
+    const meanBrier = hist.reduce((s, r) => s + r.brier, 0) / n;
+    const meanLog = hist.reduce((s, r) => s + r.log, 0) / n;
 
     const pEl = $("s-points");
     pEl.textContent = fmtPts(totalPts);
@@ -1359,7 +1406,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("s-brier").textContent = meanBrier.toFixed(3);
     $("s-log").textContent = meanLog.toFixed(3);
 
-    const withMkt = history.filter((r) => r.mkt30 != null || r.mkt7 != null || r.mkt1 != null);
+    const withMkt = hist.filter((r) => r.mkt30 != null || r.mkt7 != null || r.mkt1 != null);
     if (withMkt.length >= 3) {
       let yourB = 0, mktB = 0;
       for (const r of withMkt) {
@@ -1375,13 +1422,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       $("s-vs-mkt").innerHTML = `<span class="muted small">need ${3 - withMkt.length} more</span>`;
     }
 
-    renderReliability();
-    renderByCategory();
+    renderReliability(hist);
+    renderByCategory(hist);
   }
 
-  function renderReliability() {
+  function renderReliability(hist) {
+    if (!hist) hist = statsHistory();
     const buckets = Array.from({ length: 10 }, () => ({ preds: [], outcomes: [] }));
-    for (const r of history) {
+    for (const r of hist) {
       const idx = Math.min(9, Math.floor(r.p * 10));
       buckets[idx].preds.push(r.p);
       buckets[idx].outcomes.push(r.o);
@@ -1446,9 +1494,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     });
   }
 
-  function renderByCategory() {
+  function renderByCategory(hist) {
+    if (!hist) hist = statsHistory();
     const byCat = {};
-    for (const r of history) {
+    for (const r of hist) {
       if (!byCat[r.c]) byCat[r.c] = { n: 0, brier: 0, pts: 0 };
       byCat[r.c].n++;
       byCat[r.c].brier += r.brier;
@@ -1593,6 +1642,17 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
         await switchMode("active");
       });
     }
+
+    // Stats scope toggle (All / Resolved / Active)
+    ["all", "resolved", "active"].forEach((s) => {
+      const btn = $("btn-stats-" + s);
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        if (statsScope === s) return;
+        statsScope = s;
+        renderStats();
+      });
+    });
 
     // description toggle - on phone we toggle hidden vs fully shown; on
     // desktop we toggle the collapsed-with-fade preview vs fully expanded.

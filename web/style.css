@@ -166,6 +166,11 @@ main {
   font-weight: 500;
 }
 
+/* Stats scope toggle: same chrome as the play-mode toggle but separated
+   from the page title and followed by an optional helper note. */
+.stats-scope { margin-bottom: 0.5rem; }
+.stats-scope-note { margin: 0 0 1.25rem 0; }
+
 /* ------- welcome card (first-visit only) ------- */
 
 .welcome-card {

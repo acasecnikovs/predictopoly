@@ -22,7 +22,7 @@
 <meta name="twitter:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png">
 
-<link rel="stylesheet" href="style.css?v=39">
+<link rel="stylesheet" href="style.css?v=40">
 <link rel="preload" href="data/markets-hot.json?v=18" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/taxonomy.json?v=18" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/descriptions-hot.json?v=18" as="fetch" type="application/json" crossorigin>
@@ -190,8 +190,8 @@
     <p class="muted small open-lede">Predictions you've made on currently-open markets. Each one gets scored automatically when its market resolves and moves into your Stats.</p>
 
     <div id="open-empty" class="open-empty hidden">
-      <h3 class="empty-title">No open predictions yet</h3>
-      <p class="empty-body muted">Switch to <b>Active</b> mode on the Play screen to predict on currently-open markets. Your calls land here until the market closes.</p>
+      <h3 class="empty-title">No active predictions are currently open</h3>
+      <p class="empty-body muted">Switch to <b>Active</b> mode on the Play screen and make a prediction - it lands here until the market closes, then gets scored automatically.</p>
       <button id="btn-open-go-active" class="primary">Go to Active mode <span class="arrow">→</span></button>
     </div>
 
@@ -200,6 +200,13 @@
 
   <section id="view-stats" class="hidden">
     <h2 class="page-title">Stats</h2>
+
+    <div class="stats-scope mode-toggle" role="tablist" aria-label="stats scope">
+      <button id="btn-stats-all" class="mode-tab current" data-scope="all" role="tab" aria-selected="true" title="Combined stats across both modes">All</button>
+      <button id="btn-stats-resolved" class="mode-tab" data-scope="resolved" role="tab" aria-selected="false" title="Only predictions on Polymarket questions that already resolved">Resolved</button>
+      <button id="btn-stats-active" class="mode-tab" data-scope="active" role="tab" aria-selected="false" title="Only predictions you made on Active markets, scored after they resolve">Active</button>
+    </div>
+    <p id="stats-scope-note" class="muted small stats-scope-note hidden"></p>
 
     <div class="stat-grid">
       <div class="stat">
@@ -276,6 +283,6 @@
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">by ac <span class="arrow">↗</span></a>
 </footer>
 
-<script src="app.js?v=39" defer></script>
+<script src="app.js?v=40" defer></script>
 </body>
 </html>
