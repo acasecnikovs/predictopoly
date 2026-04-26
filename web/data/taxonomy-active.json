@@ -1,0 +1,144 @@
+{
+  "Sports": [
+    {
+      "sub": "Global Soccer",
+      "n": 914
+    },
+    {
+      "sub": "Other Sports",
+      "n": 686
+    },
+    {
+      "sub": "Tennis",
+      "n": 277
+    },
+    {
+      "sub": "NBA",
+      "n": 210
+    },
+    {
+      "sub": "eSports",
+      "n": 183
+    },
+    {
+      "sub": "NHL",
+      "n": 103
+    },
+    {
+      "sub": "MLB",
+      "n": 63
+    },
+    {
+      "sub": "F1 & Motorsport",
+      "n": 60
+    },
+    {
+      "sub": "Combat Sports",
+      "n": 23
+    }
+  ],
+  "World Politics": [
+    {
+      "sub": "Non-US Elections",
+      "n": 552
+    },
+    {
+      "sub": "International Relations & Conflicts",
+      "n": 470
+    }
+  ],
+  "Economy & Finance": [
+    {
+      "sub": "Financial Markets",
+      "n": 450
+    },
+    {
+      "sub": "Macroeconomics",
+      "n": 152
+    },
+    {
+      "sub": "Monetary Policy",
+      "n": 96
+    }
+  ],
+  "Crypto": [
+    {
+      "sub": "Speculation",
+      "n": 549
+    },
+    {
+      "sub": "Price Predictions",
+      "n": 27
+    },
+    {
+      "sub": "Protocol & Launches",
+      "n": 14
+    }
+  ],
+  "US Politics": [
+    {
+      "sub": "Nominations & Primaries",
+      "n": 299
+    },
+    {
+      "sub": "Policy & Governance",
+      "n": 159
+    },
+    {
+      "sub": "Appointments",
+      "n": 38
+    },
+    {
+      "sub": "Presidential Elections",
+      "n": 3
+    }
+  ],
+  "AI & Tech": [
+    {
+      "sub": "Model Releases & Benchmarks",
+      "n": 255
+    },
+    {
+      "sub": "Tech Companies",
+      "n": 67
+    }
+  ],
+  "Culture & Media": [
+    {
+      "sub": "Soundbites",
+      "n": 443
+    },
+    {
+      "sub": "Movies, TV & Awards",
+      "n": 154
+    },
+    {
+      "sub": "Celebrity & Events",
+      "n": 76
+    },
+    {
+      "sub": "Social Media",
+      "n": 31
+    }
+  ],
+  "Science": [
+    {
+      "sub": "Weather & Disasters",
+      "n": 1268
+    },
+    {
+      "sub": "Health & Science",
+      "n": 18
+    },
+    {
+      "sub": "Space",
+      "n": 7
+    }
+  ],
+  "Miscellaneous": [
+    {
+      "sub": "Unclassified",
+      "n": 9
+    }
+  ]
+}
