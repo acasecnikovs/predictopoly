@@ -1113,6 +1113,19 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     // reset
     $("btn-reset").addEventListener("click", resetAll);
 
+    // Tap-to-toggle tooltips. Hover-capable devices already get them via
+    // :hover, but @media (hover: none) hides ::after entirely on touch,
+    // leaving (?) and date affordances unreachable. Click handler adds a
+    // .show-tip class that overrides the mobile display:none. Tapping
+    // outside (or another tip) dismisses.
+    document.addEventListener("click", (e) => {
+      const tip = e.target.closest(".has-tip");
+      document.querySelectorAll(".has-tip.show-tip").forEach((el) => {
+        if (el !== tip) el.classList.remove("show-tip");
+      });
+      if (tip) tip.classList.toggle("show-tip");
+    });
+
     // keyboard: Enter to submit, S to skip. Range input handles arrows natively.
     document.addEventListener("keydown", (e) => {
       // Block shortcuts inside text-typing inputs (but allow them on range/button).

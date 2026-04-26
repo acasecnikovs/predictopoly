@@ -199,12 +199,42 @@ main {
   left: auto;
   right: 0;
 }
-/* Touch devices have flaky :hover and the tooltip would overflow narrow
-   viewports anyway. Hide on no-hover devices, fall back to bare dates. */
+/* Center-anchor variant - tooltip centers horizontally on the trigger.
+   Used for in-the-middle-of-a-sentence triggers like the percentile
+   number where neither left- nor right-anchoring looks balanced. */
+.has-tip-center::after {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+/* Touch devices have flaky :hover. Hide tooltips by default on no-hover
+   devices; the JS-added .show-tip class re-enables them on tap. Higher
+   specificity beats the display: none here without needing !important. */
 @media (hover: none) {
   .has-tip::after { display: none; }
   .has-tip { cursor: default; }
+  /* On mobile, anchoring the tooltip to the (?) span doesn't work - the
+     span sits near the right edge of the column and the tooltip overflows
+     off-screen. Switch to a fixed bottom-snackbar style so it's always
+     centered horizontally within the viewport. */
+  .has-tip.show-tip::after {
+    display: block;
+    opacity: 1;
+    position: fixed;
+    left: 1rem;
+    right: 1rem;
+    top: 1rem;
+    bottom: auto;
+    /* Override the desktop center-anchor translate so the snackbar
+       doesn't shift off-center when has-tip-center is also applied. */
+    transform: none;
+    max-width: none;
+    width: auto;
+    white-space: normal;
+    line-height: 1.45;
+  }
 }
+.has-tip.show-tip::after { display: block; opacity: 1; }
 
 .question {
   font-size: 1.5rem; line-height: 1.3; font-weight: 500;
@@ -411,17 +441,18 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
 }
 .percentile b {
   color: var(--accent); font-variant-numeric: tabular-nums;
-  /* Reserve space for the eventual number so the (?) and the rest of
-     the sentence don't shift when the placeholder gets swapped out.
-     2.6em fits "100%" comfortably with tabular-nums. */
+  /* Reserve space for the eventual number so the rest of the sentence
+     doesn't shift when the placeholder gets swapped out. 2.6em fits
+     "100%" comfortably with tabular-nums. Dashed underline signals the
+     number is interactive (hover/tap shows methodology tooltip). */
   display: inline-block;
   min-width: 2.6em;
   text-align: center;
+  border-bottom: 1px dashed var(--accent-line);
 }
-.percentile-info {
-  font-size: 0.75rem; color: var(--muted);
-  margin-left: 0.15rem;
-}
+/* Hide the underline while the placeholder is pulsing so "···" doesn't
+   read as a fake number with weird styling. */
+.percentile b.loading-pulse { border-bottom-color: transparent; }
 /* Used while the percentile API is in flight - reuses the question's
    pulse animation so the placeholder reads as "loading" not "broken". */
 .loading-pulse { animation: q-pulse 1.4s ease-in-out infinite; }
