@@ -112,6 +112,10 @@ def to_row(m: dict, scan_time: datetime) -> dict | None:
         "event_id": _event_id(m),
         "slug": m.get("slug"),
         "question": m.get("question"),
+        # Description is free here - the gamma list endpoint already returns
+        # it. Keeping it in the parquet means 09_export_active_for_web.py can
+        # ship a descriptions-active.json without a separate fetch pass.
+        "description": m.get("description") or "",
         "category": None,
         "endDate": m.get("endDate"),
         "startDate": m.get("startDate"),

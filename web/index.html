@@ -22,10 +22,10 @@
 <meta name="twitter:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png">
 
-<link rel="stylesheet" href="style.css?v=35">
-<link rel="preload" href="data/markets-hot.json?v=17" as="fetch" type="application/json" crossorigin>
-<link rel="preload" href="data/taxonomy.json?v=17" as="fetch" type="application/json" crossorigin>
-<link rel="preload" href="data/descriptions-hot.json?v=17" as="fetch" type="application/json" crossorigin>
+<link rel="stylesheet" href="style.css?v=36">
+<link rel="preload" href="data/markets-hot.json?v=18" as="fetch" type="application/json" crossorigin>
+<link rel="preload" href="data/taxonomy.json?v=18" as="fetch" type="application/json" crossorigin>
+<link rel="preload" href="data/descriptions-hot.json?v=18" as="fetch" type="application/json" crossorigin>
 <!-- chart.js is loaded lazily by app.js when the user opens the stats view -->
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 </head>
@@ -62,11 +62,11 @@
     <div class="welcome-modes">
       <div class="welcome-mode">
         <div class="welcome-mode-tag resolved">Resolved</div>
-        <p>~37k questions that already settled. Earn points for calibration plus a bonus if you beat the market price. Best for training - you get the answer immediately.</p>
+        <p>~37k questions that already settled. Instant feedback - the outcome plus how the market priced it. If you remember the answer from the news, that's a memory check, not calibration. Still useful for the ones you genuinely don't know.</p>
       </div>
       <div class="welcome-mode">
         <div class="welcome-mode-tag active">Active</div>
-        <p>Currently-open markets. See your call next to the live market price instantly, and your prediction goes to the <b>Open</b> tray to be scored when the market resolves.</p>
+        <p>Currently-open markets. See your call next to the live market price instantly, then your prediction goes to the <b>Open</b> tray to be scored when the market resolves. The honest calibration test - you can't peek at the future.</p>
       </div>
     </div>
     <button id="btn-welcome-go" class="primary welcome-go">Got it <span class="arrow">→</span></button>
@@ -256,9 +256,10 @@
   <span class="muted small">Inspired by <a href="https://www.quantifiedintuitions.org/" target="_blank" rel="noopener">Quantified Intuitions</a> by <a href="https://sage-future.org/" target="_blank" rel="noopener">Sage</a>.</span>
   <span class="muted small footer-priv">Your predictions stay in this browser. No accounts, no tracking.</span>
   <span class="muted small">Open source on <a href="https://github.com/acasecnikovs/predictopoly" target="_blank" rel="noopener">GitHub</a>.</span>
+  <button id="btn-show-intro" class="muted small intro-link" title="Re-open the welcome guide">show intro</button>
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">by ac <span class="arrow">↗</span></a>
 </footer>
 
-<script src="app.js?v=34" defer></script>
+<script src="app.js?v=35" defer></script>
 </body>
 </html>

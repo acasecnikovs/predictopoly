@@ -12,6 +12,7 @@ build/
 # Progress files are regeneratable but kept locally for resume
 data/classification_progress.jsonl
 data/active_classification_progress.jsonl
+data/active_descriptions.jsonl
 
 # Scratch / exploration artifacts from picking the curated "hot" deck.
 # The canonical output is scripts/hot_picks.txt; the rest are intermediate.

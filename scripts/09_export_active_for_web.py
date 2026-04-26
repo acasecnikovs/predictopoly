@@ -15,15 +15,24 @@ NFL-coach topic sweep, sub aliases. Forking 04's 380 lines for a slightly
 different output shape would be worse than ~80 lines of duplicated intent
 here. If the resolved-side rules ever drift, sync deliberately.
 
-No hot picks (those are hand-curated against resolved outcomes), no
-descriptions sidecar yet (will add when the active reveal panel needs more
-than question + price).
+Also emits descriptions-active.json (id -> description text) so the play
+view can show the same "show description ↓" affordance as resolved mode.
+If the parquet doesn't carry a description column (older 07 runs), we
+fetch them inline from the gamma single-market endpoint with a
+parallel pool, cached in data/active_descriptions.jsonl for resume.
+
+No hot picks - those are hand-curated against resolved outcomes.
 """
 
 import json
 import re
+import ssl
 import sys
+import time
+import urllib.error
+import urllib.request
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import pandas as pd
@@ -36,6 +45,73 @@ INPUT = DATA / "active_markets_classified.parquet"
 OUT_MARKETS = WEB / "markets-active.json"
 OUT_SLUGS = WEB / "slugs-active.json"
 OUT_TAXONOMY = WEB / "taxonomy-active.json"
+OUT_DESCS = WEB / "descriptions-active.json"
+DESC_CACHE = DATA / "active_descriptions.jsonl"
+
+# Gamma single-market endpoint, parallel-fetched when the parquet doesn't
+# already carry description text (older 07 runs). Mirrors 05's pattern.
+_DESC_API = "https://gamma-api.polymarket.com/markets/{id}"
+_DESC_WORKERS = 30
+_DESC_TIMEOUT = 10
+_SSL_CTX = ssl.create_default_context()
+_SSL_CTX.check_hostname = False
+_SSL_CTX.verify_mode = ssl.CERT_NONE
+
+
+def _fetch_one_desc(mid: str):
+    try:
+        req = urllib.request.Request(
+            _DESC_API.format(id=mid),
+            headers={"User-Agent": "predictopoly-scraper"},
+        )
+        with urllib.request.urlopen(req, timeout=_DESC_TIMEOUT, context=_SSL_CTX) as r:
+            d = json.loads(r.read())
+        return {"id": str(mid), "desc": d.get("description") or "", "ok": True}
+    except urllib.error.HTTPError as e:
+        return {"id": str(mid), "ok": False, "err": f"HTTP {e.code}"}
+    except Exception as e:
+        return {"id": str(mid), "ok": False, "err": str(e)[:100]}
+
+
+def fetch_missing_descriptions(ids):
+    """Resume-aware parallel fetch. Returns {id: description}."""
+    cache = {}
+    if DESC_CACHE.exists():
+        with DESC_CACHE.open() as f:
+            for line in f:
+                try:
+                    rec = json.loads(line)
+                    if rec.get("ok") and rec.get("desc"):
+                        cache[rec["id"]] = rec["desc"]
+                except Exception:
+                    pass
+        print(f"  cache: {len(cache)} descriptions", file=sys.stderr)
+
+    todo = [i for i in ids if i not in cache]
+    if not todo:
+        return cache
+    print(f"  fetching {len(todo)} descriptions in parallel...", file=sys.stderr)
+    t0 = time.time()
+    n_ok = n_err = 0
+    with DESC_CACHE.open("a") as f, ThreadPoolExecutor(max_workers=_DESC_WORKERS) as pool:
+        futures = {pool.submit(_fetch_one_desc, mid): mid for mid in todo}
+        for i, fut in enumerate(as_completed(futures), 1):
+            rec = fut.result()
+            f.write(json.dumps(rec) + "\n")
+            if rec.get("ok"):
+                n_ok += 1
+                if rec.get("desc"):
+                    cache[rec["id"]] = rec["desc"]
+            else:
+                n_err += 1
+            if i % 500 == 0:
+                f.flush()
+                rate = i / max(1e-3, time.time() - t0)
+                print(f"    {i}/{len(todo)} ({rate:.1f}/s) ok={n_ok} err={n_err}",
+                      file=sys.stderr)
+    print(f"  done: ok={n_ok} err={n_err} in {(time.time()-t0)/60:.1f}m",
+          file=sys.stderr)
+    return cache
 
 # --- normalization, ported from 04_normalize_taxonomy.py ---
 
@@ -281,6 +357,26 @@ def main():
         json.dump(records, f, separators=(",", ":"))
     with OUT_SLUGS.open("w") as f:
         json.dump(slug_map, f, separators=(",", ":"))
+
+    # --- descriptions sidecar ---
+    # If 07 wrote `description` into the parquet, use that. Otherwise fetch
+    # via gamma single-market API (cached at data/active_descriptions.jsonl).
+    if "description" in df.columns:
+        desc_map_raw = dict(zip(df["id"].astype(str), df["description"].fillna("")))
+        # Downgrade to the same dict shape the fetch path returns (drop blanks).
+        desc_map = {k: v for k, v in desc_map_raw.items() if isinstance(v, str) and v.strip()}
+        print(f"Descriptions from parquet: {len(desc_map)}", file=sys.stderr)
+    else:
+        print("No description column in parquet, fetching from gamma...", file=sys.stderr)
+        ids_in_use = [r["id"] for r in records]
+        desc_map = fetch_missing_descriptions(ids_in_use)
+
+    desc_out = {r["id"]: desc_map[r["id"]] for r in records if r["id"] in desc_map}
+    with OUT_DESCS.open("w") as f:
+        json.dump(desc_out, f, separators=(",", ":"))
+    desc_kb = OUT_DESCS.stat().st_size / 1024
+    print(f"Wrote {OUT_DESCS.name} ({len(desc_out)} descriptions, {desc_kb:.1f} KB)",
+          file=sys.stderr)
 
     pairs = Counter((r["c"], r["s"]) for r in records)
     tax = defaultdict(list)

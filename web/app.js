@@ -114,6 +114,11 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   let slugsActive = {};
   let activeLoaded = false;
   let activeLoadPromise = null;
+  // Active descriptions land in the shared `descs` map (keyed by market id),
+  // so the existing renderDescription path Just Works regardless of mode.
+  // Lazy-loaded once after the active dataset to avoid blocking first paint.
+  let activeDescsLoaded = false;
+  let activeDescsPromise = null;
 
   // The four globals below are aliases that point at one of the dataset pairs
   // above. Mode switch swaps them. Most of the existing code reads from these
@@ -178,7 +183,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- data -------
   // Cache-bust by app version so taxonomy revisions actually reach the browser.
-  const DATA_V = "17";
+  const DATA_V = "18";
 
   // First paint only needs the 87-question hot pack (~7 KB brotli). The full
   // markets.json (1.3 MB brotli) loads in the background and swaps in when
@@ -240,12 +245,41 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
         taxonomyActive = await tRes.json();
         if (sRes.ok) slugsActive = await sRes.json();
         activeLoaded = true;
+        // Kick off descriptions in the background. Don't await - the first
+        // active question can render without its description; we patch in
+        // the text when the bundle lands (renderDescription handles both).
+        loadActiveDescriptions();
         return true;
       } catch {
         return false;
       }
     })();
     return activeLoadPromise;
+  }
+
+  // Active descriptions arrive as one ~7.6 MB file (brotli ~1.5 MB). Worth
+  // keeping out of the critical path: the active dataset is enough to play,
+  // and "show description ↓" is opt-in. Falls through silently on 404.
+  function loadActiveDescriptions() {
+    if (activeDescsPromise) return activeDescsPromise;
+    activeDescsPromise = (async () => {
+      try {
+        const res = await fetch(`data/descriptions-active.json?v=${DATA_V}`);
+        if (!res.ok) return false;
+        const map = await res.json();
+        Object.assign(descs, map);
+        activeDescsLoaded = true;
+        // If the user is currently on an active question, patch its
+        // description in - same dance as the resolved-shard loader.
+        if (current && prefs.dataMode === "active" && descs[current.id]) {
+          renderDescription(descs[current.id]);
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+    return activeDescsPromise;
   }
 
   // Swap the global aliases to point at whichever dataset matches `mode`.
@@ -566,6 +600,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     const card = $("welcome-card");
     if (card) card.classList.add("hidden");
   }
+  // Footer "show intro" button - re-opens the welcome card on demand. Doesn't
+  // unset LS_ONBOARD so dismissing again is silent (no re-tutorial loop).
+  function showOnboardingNow() {
+    const card = $("welcome-card");
+    if (!card) return;
+    card.classList.remove("hidden");
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   // ------- play view rendering -------
   function showQuestion(m) {
@@ -605,9 +647,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     qEl.classList.remove("is-loading");
     $("m-yn").textContent = m.yn ? `(YES = ${m.yn})` : "";
 
-    // description (may be empty if descriptions.json hasn't loaded yet,
-    // or always empty in active mode where we don't ship a desc bundle yet)
-    renderDescription(prefs.dataMode === "active" ? "" : (descs[m.id] || ""));
+    // description (may be empty if descriptions.json / descriptions-active.json
+    // hasn't loaded yet - we patch it in when its loader lands the data)
+    renderDescription(descs[m.id] || "");
 
     // reset slider
     const slider = $("p-slider");
@@ -1424,6 +1466,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     // welcome card dismiss (X and "Got it" both close it)
     $("btn-onboarding-dismiss").addEventListener("click", dismissOnboarding);
     $("btn-welcome-go").addEventListener("click", dismissOnboarding);
+    // footer "show intro" - re-opens the card whenever the user wants a refresher
+    const introBtn = $("btn-show-intro");
+    if (introBtn) introBtn.addEventListener("click", showOnboardingNow);
 
     // empty-deck "Change deck" button just opens the deck modal
     $("btn-empty-open-deck").addEventListener("click", openDeckModal);

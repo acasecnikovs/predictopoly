@@ -883,6 +883,17 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .sig-link { margin-left: auto; font-variant-numeric: tabular-nums; opacity: 0.85; }
 .sig-link:hover { opacity: 1; }
 
+/* "show intro" button in the footer. Styled as a plain link rather than a
+   button so it disappears into the footer row visually. Looks identical to
+   the surrounding muted text but underlines on hover. */
+.intro-link {
+  background: none; border: none; padding: 0; margin: 0;
+  font: inherit; color: var(--muted); cursor: pointer;
+  border-bottom: 1px solid rgba(154,160,170,0.35);
+  line-height: 1.2;
+}
+.intro-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
 /* ------- responsive ------- */
 
 @media (max-width: 600px) {
