@@ -10,6 +10,12 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   const LS_HISTORY = "predictopoly.history.v1";
   const LS_PREFS   = "predictopoly.prefs.v1";
   const LS_ONBOARD = "predictopoly.onboarded.v1";
+  // Active-mode predictions live in their own list. Each entry captures the
+  // user's prob, the market price at the time of submit, and the market id /
+  // event id / endDate. The Open tray (Phase B) reads this list and a
+  // resolution-checker upgrades entries to scored history records once the
+  // market closes. Until then they're "pending" and carry no points.
+  const LS_PENDING = "predictopoly.pending.v1";
 
   const VOL_STEPS  = [0, 100, 1000, 10000, 100000, 1000000];
 
@@ -73,14 +79,35 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   const $$ = (sel) => document.querySelectorAll(sel);
 
   // ------- state -------
+  // Resolved-mode datasets (default).
+  let marketsResolved = [];
+  let taxonomyResolved = {};
+  let slugsResolved = {};
+
+  // Active-mode datasets (lazy-loaded when user switches to Active mode).
+  let marketsActive = [];
+  let taxonomyActive = {};
+  let slugsActive = {};
+  let activeLoaded = false;
+  let activeLoadPromise = null;
+
+  // The four globals below are aliases that point at one of the dataset pairs
+  // above. Mode switch swaps them. Most of the existing code reads from these
+  // by reference so swapping is transparent.
   let markets   = [];
   let taxonomy  = {};
-  let descs     = {};       // id -> description text. Lazy-loaded after first paint.
+  let slugs     = {};
+
+  let descs     = {};       // id -> description text (resolved-mode only). Lazy-loaded after first paint.
   let descsReady = false;
-  let slugs     = {};       // id -> polymarket slug. Lazy-loaded after first paint.
   let history   = loadHistory();
+  let pending   = loadPending();
   let prefs     = loadPrefs();
   let current   = null;     // currently displayed market
+  // Per-session set of event_ids already seen, so multi-outcome events
+  // (e.g. "Who wins 2028 Dem nom?" with N candidate-binary slices) only
+  // contribute one question per session.
+  const seenEvents = new Set();
   let chart     = null;     // chart.js instance
   let chartJsPromise = null;
   function loadChartJs() {
@@ -104,16 +131,24 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
   function saveHistory() { localStorage.setItem(LS_HISTORY, JSON.stringify(history)); }
 
+  function loadPending() {
+    try { return JSON.parse(localStorage.getItem(LS_PENDING) || "[]"); }
+    catch { return []; }
+  }
+  function savePending() { localStorage.setItem(LS_PENDING, JSON.stringify(pending)); }
+
   function loadPrefs() {
     try {
       const p = JSON.parse(localStorage.getItem(LS_PREFS) || "{}");
       const vi = p.volIdx ?? 4;
+      const dm = p.dataMode === "active" ? "active" : "resolved";
       return {
         mode: p.mode || "hot",       // "hot" = curated allowlist, "custom" = subs-based
         subs: p.subs || null,
         volIdx: Math.max(0, Math.min(VOL_STEPS.length - 1, vi)),
+        dataMode: dm,                // "resolved" | "active"
       };
-    } catch { return { mode: "hot", subs: null, volIdx: 4 }; }
+    } catch { return { mode: "hot", subs: null, volIdx: 4, dataMode: "resolved" }; }
   }
   function savePrefs() { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); }
 
@@ -136,12 +171,13 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       fetch(`data/descriptions-hot.json?v=${DATA_V}`),
     ]);
     if (!mRes.ok || !tRes.ok) throw new Error("data fetch failed");
-    markets = await mRes.json();
-    taxonomy = await tRes.json();
+    marketsResolved = await mRes.json();
+    taxonomyResolved = await tRes.json();
     if (dRes.ok) {
       descs = await dRes.json();
       descsReady = true;
     }
+    if (prefs.dataMode === "resolved") applyDataMode("resolved", { silent: true });
   }
 
   function loadFullMarkets() {
@@ -152,14 +188,72 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
         if (!res.ok) return false;
         const full = await res.json();
         // Preserve any session-only state by replacing wholesale; ids are stable.
-        markets = full;
+        marketsResolved = full;
         marketsAreFastPack = false;
+        if (prefs.dataMode === "resolved") markets = marketsResolved;
         return true;
       } catch {
         return false;
       }
     })();
     return fullMarketsPromise;
+  }
+
+  // Active dataset is a single 1.4 MB file - no fast pack needed since the
+  // resolved-side hot pack only exists because the full resolved set is 25 MB.
+  // 1.4 MB brotli-compresses to ~250 KB, fine to load in one shot.
+  function loadActiveData() {
+    if (activeLoadPromise) return activeLoadPromise;
+    activeLoadPromise = (async () => {
+      try {
+        const [mRes, tRes, sRes] = await Promise.all([
+          fetch(`data/markets-active.json?v=${DATA_V}`),
+          fetch(`data/taxonomy-active.json?v=${DATA_V}`),
+          fetch(`data/slugs-active.json?v=${DATA_V}`),
+        ]);
+        if (!mRes.ok || !tRes.ok) return false;
+        marketsActive = await mRes.json();
+        taxonomyActive = await tRes.json();
+        if (sRes.ok) slugsActive = await sRes.json();
+        activeLoaded = true;
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+    return activeLoadPromise;
+  }
+
+  // Swap the global aliases to point at whichever dataset matches `mode`.
+  // `silent` skips re-rendering (used during init when callers will render).
+  function applyDataMode(mode, { silent = false } = {}) {
+    if (mode === "active") {
+      markets = marketsActive;
+      taxonomy = taxonomyActive;
+      slugs = slugsActive;
+    } else {
+      markets = marketsResolved;
+      taxonomy = taxonomyResolved;
+      slugs = slugsResolved;
+    }
+    prefs.dataMode = mode;
+    savePrefs();
+    seenEvents.clear();
+    if (!silent) {
+      renderModeToggle();
+      renderDeckStrip();
+    }
+  }
+
+  function renderModeToggle() {
+    const dm = prefs.dataMode;
+    const r = $("btn-mode-resolved");
+    const a = $("btn-mode-active");
+    if (!r || !a) return;
+    r.classList.toggle("current", dm === "resolved");
+    a.classList.toggle("current", dm === "active");
+    r.setAttribute("aria-selected", dm === "resolved");
+    a.setAttribute("aria-selected", dm === "active");
   }
 
   // Descriptions are sharded into 4 files (Cloudflare Pages caps individual
@@ -172,7 +266,8 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     try {
       const res = await fetch(`data/slugs.json?v=${DATA_V}`);
       if (!res.ok) return;
-      slugs = await res.json();
+      slugsResolved = await res.json();
+      if (prefs.dataMode === "resolved") slugs = slugsResolved;
       // Patch the reveal link if reveal panel is currently visible.
       if (current && slugs[current.id]) {
         const link = $("r-link");
@@ -299,6 +394,20 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     // Source of truth for "is this market in the active deck right now?"
     // Edition picks bypass the volume filter - they're hand-curated, the
     // filter is meant for taming the long tail of low-volume custom decks.
+    if (prefs.dataMode === "active") {
+      // Active markets have no `t` (close already happened) so the
+      // hindsight-spoiler check never fires. Hot picks don't apply
+      // (curation is resolved-only). Volume + sub selection same as resolved.
+      const minVol = VOL_STEPS[prefs.volIdx];
+      if ((m.v || 0) < minVol) return false;
+      // In active mode, an empty selection means "show everything" instead
+      // of nothing - fresh users haven't picked subs and shouldn't hit a
+      // dead deck. The deck modal is the way to narrow down.
+      if (!prefs.subs || Object.keys(prefs.subs).every(k => !(prefs.subs[k] || []).length)) {
+        return true;
+      }
+      return isSelected(m.c, m.s);
+    }
     if (isHindsightSpoiler(m)) return false;
     if (prefs.mode === "hot") return !!m.hot;
     const minVol = VOL_STEPS[prefs.volIdx];
@@ -320,6 +429,17 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     return Object.keys(taxonomy).filter((c) => catState(c) !== "off").length;
   }
   function filteredPool() {
+    if (prefs.dataMode === "active") {
+      // Active mode: dedup against the pending tray (already predicted) AND
+      // against this-session's seenEvents so a multi-outcome event can't
+      // dominate the deck (one market per event per session).
+      const pendingIds = new Set(pending.map((p) => p.id));
+      return markets.filter((m) => {
+        if (pendingIds.has(m.id)) return false;
+        if (m.ev && seenEvents.has(m.ev)) return false;
+        return marketPasses(m);
+      });
+    }
     const seen = new Set(history.map((h) => h.id));
     return markets.filter((m) => !seen.has(m.id) && marketPasses(m));
   }
@@ -330,12 +450,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   function pickQuestion() {
     const pool = filteredPool();
     if (!pool.length) return null;
-    // Weight by p7 uncertainty: questions where the market itself was uncertain
-    // (p7 near 0.5) are more calibration-rich than near-certain ones.
-    // Items without p7 get the median weight so they aren't excluded.
     let total = 0;
     const weights = pool.map((m) => {
-      const w = (m.p7 != null) ? Math.max(0.1, 1 - 2 * Math.abs(m.p7 - 0.5)) : 0.5;
+      // In active mode the comparable signal is the current price (p_now).
+      // In resolved mode it's the 7-day-pre-close price (p7). Same idea:
+      // weight uncertain markets higher, since 50/50 markets are more
+      // calibration-rich than 95/5 ones.
+      const ref = (prefs.dataMode === "active") ? m.p_now : m.p7;
+      const w = (ref != null) ? Math.max(0.1, 1 - 2 * Math.abs(ref - 0.5)) : 0.5;
       total += w;
       return w;
     });
@@ -366,6 +488,19 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   function renderDeckStrip() {
     const total = deckSize();
     const pool = filteredPool();
+    if (prefs.dataMode === "active") {
+      // Active mode has no "edition picks" - hot:true is curated against
+      // resolved outcomes only. Show plain count or category-narrowed count.
+      const cats = Object.keys(prefs.subs || {}).filter((c) => (prefs.subs[c] || []).length > 0);
+      if (!cats.length) {
+        $("deck-label").textContent = `all categories · ${fmtNum(total)} active`;
+      } else if (cats.length === 1) {
+        $("deck-label").textContent = `${cats[0]} · ${fmtNum(total)} active`;
+      } else {
+        $("deck-label").textContent = `${cats.length} categories · ${fmtNum(total)} active`;
+      }
+      return;
+    }
     if (prefs.mode === "hot") {
       $("deck-label").textContent = `edition picks · ${fmtNum(total)} questions`;
       return;
@@ -409,13 +544,25 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     current = m;
     $("m-cat").textContent  = m.c || "";
     $("m-sub").textContent  = m.s || "";
-    // Show market open date alongside resolution date so users can tell
-    // "predict 1 day before" from "predict 30 days before" - for date-sensitive
-    // questions ("rain in 2025") that distinction changes the problem entirely.
-    // Bare dates with arrow keep the line short; tooltip spells out the labels.
-    // Falls back to resolution-only when ts is missing (~8% of full dataset).
     const dateEl = $("m-date");
-    if (m.ts) {
+    if (prefs.dataMode === "active") {
+      // Active markets show "resolves in N days" instead of close date.
+      // The endDate (m.end) goes into the tooltip so the precise calendar
+      // date is one tap away.
+      const days = m.days != null ? Math.max(0, Math.round(m.days)) : null;
+      const txt = days != null
+        ? (days === 0 ? "resolves today" : `resolves in ${days}d`)
+        : "open";
+      dateEl.textContent = txt;
+      if (m.end) {
+        dateEl.dataset.tip = `closes ${fmtDate(m.end)}`;
+        dateEl.classList.add("has-tip");
+      } else {
+        delete dateEl.dataset.tip;
+        dateEl.classList.remove("has-tip");
+      }
+    } else if (m.ts) {
+      // Resolved with both open + close dates.
       dateEl.textContent = `${fmtDate(m.ts)} → ${fmtDate(m.t)}`;
       dateEl.dataset.tip = `opened ${fmtDate(m.ts)}, resolved ${fmtDate(m.t)}`;
       dateEl.classList.add("has-tip");
@@ -430,17 +577,19 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     qEl.classList.remove("is-loading");
     $("m-yn").textContent = m.yn ? `(YES = ${m.yn})` : "";
 
-    // description (may be empty if descriptions.json hasn't loaded yet)
-    renderDescription(descs[m.id] || "");
+    // description (may be empty if descriptions.json hasn't loaded yet,
+    // or always empty in active mode where we don't ship a desc bundle yet)
+    renderDescription(prefs.dataMode === "active" ? "" : (descs[m.id] || ""));
 
     // reset slider
     const slider = $("p-slider");
     slider.value = "50";
     setBubble(50);
 
-    // show predict, hide reveal
+    // show predict, hide both reveals
     $("predict-block").classList.remove("hidden");
     $("reveal-block").classList.add("hidden");
+    $("reveal-block-active").classList.add("hidden");
 
     // focus the slider so arrow keys work immediately and Enter submits
     requestAnimationFrame(() => slider.focus({ preventScroll: true }));
@@ -496,6 +645,12 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   function submit() {
     if (!current) return;
     const p = +$("p-slider").value / 100;
+
+    if (prefs.dataMode === "active") {
+      submitActive(p);
+      return;
+    }
+
     const o = current.o;
     const mp = earliestMarketPrice(current);
     const score = pointsFor(p, o, mp ? mp.p : null);
@@ -517,6 +672,70 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     renderReveal(rec, current, score, mp);
     renderSession();
     fetchPercentile(current.id, score.yourBrier);
+  }
+
+  function submitActive(p) {
+    const m = current;
+    if (m.ev) seenEvents.add(m.ev);
+
+    const rec = {
+      id: m.id,
+      q: m.q,
+      p,
+      // Snapshot of the market price at submit time. Phase B's resolver
+      // upgrades this entry to a scored history record using p_at_submit
+      // as the "market said" benchmark, so it stays honest even if the
+      // market moves before resolution.
+      p_at_submit: m.p_now,
+      c: m.c, s: m.s,
+      ev: m.ev || null,
+      end: m.end || "",
+      v: m.v || 0,
+      status: "pending",
+      t: Date.now(),
+    };
+    pending.push(rec);
+    savePending();
+    renderRevealActive(rec, m);
+  }
+
+  function renderRevealActive(rec, m) {
+    $("predict-block").classList.add("hidden");
+    $("reveal-block").classList.add("hidden");
+    $("reveal-block-active").classList.remove("hidden");
+
+    const youPct = Math.round(rec.p * 100);
+    const mktPct = Math.round(rec.p_at_submit * 100);
+    const delta = youPct - mktPct;
+
+    $("ra-you").textContent = youPct + "%";
+    $("ra-mkt").textContent = mktPct + "%";
+    const dEl = $("ra-delta");
+    dEl.textContent = (delta > 0 ? "+" : "") + delta + "pp";
+    dEl.classList.remove("pos", "neg", "zero");
+    if (delta > 0) dEl.classList.add("pos");
+    else if (delta < 0) dEl.classList.add("neg");
+    else dEl.classList.add("zero");
+
+    const endEl = $("ra-end");
+    if (m.end) {
+      const days = m.days != null ? Math.max(0, Math.round(m.days)) : null;
+      endEl.textContent = days != null
+        ? `closes ${fmtDate(m.end)} (in ${days}d)`
+        : `closes ${fmtDate(m.end)}`;
+    } else {
+      endEl.textContent = "";
+    }
+
+    const link = $("ra-link");
+    const slug = slugs[m.id];
+    if (slug) {
+      link.href = `https://polymarket.com/market/${slug}`;
+      link.classList.remove("hidden");
+    } else {
+      link.removeAttribute("href");
+      link.classList.add("hidden");
+    }
   }
 
   function renderReveal(rec, m, score, mp) {
@@ -629,8 +848,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   async function nextQuestion() {
     let q = pickQuestion();
     // Custom decks won't be satisfied by the hot-only fast pack. Block briefly
-    // for the full set if it's still in flight, then retry.
-    if (!q && marketsAreFastPack) {
+    // for the full set if it's still in flight, then retry. (Resolved-mode
+    // only - active loads its full file in one shot, no fast pack.)
+    if (!q && prefs.dataMode === "resolved" && marketsAreFastPack) {
       await loadFullMarkets();
       q = pickQuestion();
     }
@@ -710,6 +930,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     const wrap = $("deck-presets");
     wrap.innerHTML = "";
     for (const p of PRESETS) {
+      // "Edition picks" is a curated allowlist against resolved outcomes -
+      // doesn't apply to active markets. Hide it in active mode.
+      if (p.hotFlag && prefs.dataMode === "active") continue;
       const btn = document.createElement("button");
       btn.className = "preset" + (presetMatches(p) ? " on" : "");
       btn.title = p.hint;
@@ -1050,6 +1273,21 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     }
     savePrefs();
 
+    // If the user's last session ended in Active mode, load active data
+    // before the first paint so they don't see resolved markets flash by.
+    if (prefs.dataMode === "active") {
+      const qEl = $("m-question");
+      if (qEl) qEl.textContent = "Loading active markets...";
+      const ok = await loadActiveData();
+      if (ok) {
+        applyDataMode("active", { silent: true });
+      } else {
+        // Fallback to resolved if active data is unreachable.
+        prefs.dataMode = "resolved";
+        savePrefs();
+      }
+    }
+
     renderSession();
     renderDeckStrip();
     renderOnboarding();
@@ -1062,6 +1300,33 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("btn-submit").addEventListener("click", submit);
     $("btn-skip").addEventListener("click", skipQuestion);
     $("btn-next").addEventListener("click", nextQuestion);
+    $("btn-next-active").addEventListener("click", nextQuestion);
+
+    // mode toggle (Resolved / Active)
+    async function switchMode(mode) {
+      if (prefs.dataMode === mode) return;
+      if (mode === "active" && !activeLoaded) {
+        const qEl = $("m-question");
+        if (qEl) {
+          qEl.textContent = "Loading active markets...";
+          qEl.classList.add("is-loading");
+        }
+        const ok = await loadActiveData();
+        if (!ok) {
+          if (qEl) qEl.textContent = "Could not load active markets.";
+          return;
+        }
+      }
+      applyDataMode(mode);
+      // Drop any open reveal panels - they belong to the other mode
+      $("reveal-block").classList.add("hidden");
+      $("reveal-block-active").classList.add("hidden");
+      $("predict-block").classList.remove("hidden");
+      nextQuestion();
+    }
+    $("btn-mode-resolved").addEventListener("click", () => switchMode("resolved"));
+    $("btn-mode-active").addEventListener("click", () => switchMode("active"));
+    renderModeToggle();
 
     // description toggle - on phone we toggle hidden vs fully shown; on
     // desktop we toggle the collapsed-with-fade preview vs fully expanded.
@@ -1138,7 +1403,8 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
         return;
       }
       if (currentView !== "play") return;
-      const revealOpen = !$("reveal-block").classList.contains("hidden");
+      const revealOpen = !$("reveal-block").classList.contains("hidden")
+        || !$("reveal-block-active").classList.contains("hidden");
       if (e.key === "Enter" && !revealOpen) { e.preventDefault(); submit(); }
       else if (e.key === "Enter" && revealOpen) { e.preventDefault(); nextQuestion(); }
       else if (e.key.toLowerCase() === "s" && !revealOpen) { skipQuestion(); }

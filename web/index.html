@@ -22,7 +22,7 @@
 <meta name="twitter:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png">
 
-<link rel="stylesheet" href="style.css?v=33">
+<link rel="stylesheet" href="style.css?v=34">
 <link rel="preload" href="data/markets-hot.json?v=17" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/taxonomy.json?v=17" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/descriptions-hot.json?v=17" as="fetch" type="application/json" crossorigin>
@@ -46,6 +46,10 @@
 <main>
 
   <div class="deck-strip">
+    <div class="mode-toggle" role="tablist" aria-label="market mode">
+      <button id="btn-mode-resolved" class="mode-tab current" data-mode="resolved" role="tab" aria-selected="true" title="Train on Polymarket questions that already resolved">Resolved</button>
+      <button id="btn-mode-active" class="mode-tab" data-mode="active" role="tab" aria-selected="false" title="Predict on currently-open Polymarket questions">Active</button>
+    </div>
     <span class="deck-prefix">deck:</span>
     <span id="deck-label">edition picks · 84 questions</span>
     <button id="btn-open-deck" class="deck-change">change <span class="arrow">↗</span></button>
@@ -90,6 +94,43 @@
       <div class="predict-actions">
         <button id="btn-submit" class="primary">Lock it in <span class="arrow">→</span></button>
         <button id="btn-skip" class="text">skip</button>
+      </div>
+    </div>
+
+    <div class="reveal hidden" id="reveal-block-active">
+
+      <div id="ra-callout" class="callout active-callout">
+        <div class="callout-row">
+          <span class="callout-tag">market open</span>
+          <span id="ra-end" class="callout-end muted small"></span>
+        </div>
+
+        <div class="callout-row active-numbers">
+          <div class="num-cell">
+            <span class="num-lbl">you</span>
+            <span id="ra-you" class="num-val you"></span>
+          </div>
+          <div class="num-cell">
+            <span class="num-lbl">market now</span>
+            <span id="ra-mkt" class="num-val mkt"></span>
+          </div>
+          <div class="num-cell">
+            <span class="num-lbl">delta</span>
+            <span id="ra-delta" class="num-val delta"></span>
+          </div>
+        </div>
+
+        <div class="active-hint muted small">
+          Saved to your <b>Open</b> tray. Comes back scored when this market resolves.
+        </div>
+      </div>
+
+      <div class="reveal-foot">
+        <a id="ra-link" href="#" target="_blank" rel="noopener" class="poly-link">View on Polymarket <span class="arrow">→</span></a>
+      </div>
+
+      <div class="reveal-actions">
+        <button id="btn-next-active" class="primary">Next question <span class="arrow">→</span></button>
       </div>
     </div>
 
@@ -200,6 +241,6 @@
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">by ac <span class="arrow">↗</span></a>
 </footer>
 
-<script src="app.js?v=32" defer></script>
+<script src="app.js?v=33" defer></script>
 </body>
 </html>

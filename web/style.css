@@ -130,6 +130,29 @@ main {
 }
 .deck-change:hover { background: var(--accent-soft); }
 
+.mode-toggle {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.mode-tab {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+.mode-tab:hover { color: var(--text); background: var(--bg-soft); }
+.mode-tab.current {
+  color: var(--text);
+  background: var(--accent-soft);
+  font-weight: 500;
+}
+
 /* ------- onboarding strip ------- */
 
 .onboarding {
@@ -416,6 +439,38 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
 }
 .callout-outcome.yes { color: var(--yes); }
 .callout-outcome.no { color: var(--no); }
+
+.callout.active-callout {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+.callout-end { font-variant-numeric: tabular-nums; }
+.active-numbers {
+  margin-top: 0.625rem;
+  gap: 1.5rem;
+}
+.num-cell {
+  display: flex; flex-direction: column; gap: 0.125rem;
+}
+.num-lbl {
+  font-size: 0.6875rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.num-val {
+  font-size: 1.625rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em; line-height: 1.1;
+}
+.num-val.you { color: var(--text); }
+.num-val.mkt { color: var(--muted); }
+.num-val.delta.pos { color: var(--yes); }
+.num-val.delta.neg { color: var(--no); }
+.num-val.delta.zero { color: var(--muted); }
+.active-hint {
+  margin-top: 0.75rem;
+  line-height: 1.4;
+}
+.active-hint b { color: var(--accent); }
 
 .points-row {
   margin-top: 0.5rem;
