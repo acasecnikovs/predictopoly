@@ -12,7 +12,7 @@ error between your probability and the 0/1 outcome) and log score.
 ## Inspiration
 
 Built by [Artyom Casecnikovs](https://acasecnikovs.com) after going through
-every calibration question on Sage by [Quantified Intuitions](https://www.quantifiedintuitions.org/).
+every calibration question on [Quantified Intuitions](https://www.quantifiedintuitions.org/) by Sage.
 
 Sage calibrates you on scalar confidence intervals over general knowledge.
 Predictopoly calibrates you on probabilities over real prediction market
