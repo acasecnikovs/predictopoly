@@ -44,8 +44,18 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
 
   // Deck presets - map preset id to a function that returns a {cat: [sub,...]}
-  // shape using the live taxonomy. Order matters - first one is the "default" for fresh users.
+  // shape using the live taxonomy. Display order is the visual order in the
+  // deck modal; the fresh-user default is set independently via prefs init
+  // (mode = "hot"), so reordering here is purely a UX call. "All" leads
+  // because it's the most common power-user starting point - users who want
+  // a narrower deck reach for News/Tech/Sports next.
   const PRESETS = [
+    {
+      id: "all",
+      label: "All",
+      hint: "every category",
+      build: (tax) => pickCats(tax, Object.keys(tax)),
+    },
     {
       id: "hot",
       label: "Edition picks",
@@ -75,12 +85,6 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       label: "Sports",
       hint: "if you really want game outcomes",
       build: (tax) => pickCats(tax, ["Sports"]),
-    },
-    {
-      id: "all",
-      label: "All",
-      hint: "every category",
-      build: (tax) => pickCats(tax, Object.keys(tax)),
     },
     {
       id: "clear",
