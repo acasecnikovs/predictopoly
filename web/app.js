@@ -416,7 +416,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- view switching -------
   function showView(name) {
-    ["play", "stats"].forEach((v) => {
+    ["play", "open", "stats"].forEach((v) => {
       const el = $("view-" + v);
       if (el) el.classList.toggle("hidden", v !== name);
     });
@@ -430,6 +430,8 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
           if (ok && currentView === "stats") renderStats();
         });
       }
+    } else if (name === "open") {
+      renderOpenTray();
     }
     window.scrollTo({ top: 0, behavior: "instant" });
   }
@@ -770,6 +772,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     };
     pending.push(rec);
     savePending();
+    renderNavCount();
     renderRevealActive(rec, m);
   }
 
@@ -810,6 +813,118 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       link.removeAttribute("href");
       link.classList.add("hidden");
     }
+  }
+
+  // ------- open tray -------
+  // Pending records are always active-market predictions, so slugs come from
+  // slugsActive specifically (the global `slugs` alias might be pointing at
+  // resolved slugs if the user is in resolved mode). If active data hasn't
+  // been loaded yet this session we kick it off so links light up shortly
+  // after the tray paints.
+  function renderNavCount() {
+    const el = $("nav-open-count");
+    if (!el) return;
+    const n = pending.length;
+    if (n > 0) {
+      el.textContent = String(n);
+      el.classList.remove("hidden");
+    } else {
+      el.textContent = "";
+      el.classList.add("hidden");
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (ch) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]
+    ));
+  }
+
+  function renderOpenTray() {
+    const list = $("open-list");
+    const empty = $("open-empty");
+    if (!list || !empty) return;
+
+    if (!pending.length) {
+      list.innerHTML = "";
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+
+    // Make sure active slugs are in flight even if user is in resolved mode -
+    // pending links resolve once the file lands.
+    if (!activeLoaded) loadActiveData();
+
+    // Sort by closing date ascending; rows with no `end` sink to the bottom.
+    const rows = pending.slice().sort((a, b) => {
+      const ea = a.end ? new Date(a.end).getTime() : Infinity;
+      const eb = b.end ? new Date(b.end).getTime() : Infinity;
+      if (ea !== eb) return ea - eb;
+      return (b.t || 0) - (a.t || 0);
+    });
+
+    const now = Date.now();
+    const html = rows.map((r) => {
+      const youPct = Math.round(r.p * 100);
+      const mktPct = Math.round((r.p_at_submit ?? 0) * 100);
+      const delta = youPct - mktPct;
+      const deltaCls = delta > 0 ? "pos" : (delta < 0 ? "neg" : "zero");
+      const deltaTxt = (delta > 0 ? "+" : "") + delta + "pp";
+
+      let endTxt = "";
+      let endCls = "muted";
+      if (r.end) {
+        const endMs = new Date(r.end).getTime();
+        const days = Math.round((endMs - now) / 86400000);
+        if (isNaN(endMs)) {
+          endTxt = "";
+        } else if (days < 0) {
+          endTxt = `closed ${fmtDate(r.end)} - awaiting resolution`;
+          endCls = "muted warn";
+        } else if (days === 0) {
+          endTxt = `closes today (${fmtDate(r.end)})`;
+        } else if (days === 1) {
+          endTxt = `closes tomorrow (${fmtDate(r.end)})`;
+        } else {
+          endTxt = `closes in ${days}d (${fmtDate(r.end)})`;
+        }
+      }
+
+      const slug = slugsActive[r.id];
+      const linkHtml = slug
+        ? `<a class="open-link" href="https://polymarket.com/market/${escapeHtml(slug)}" target="_blank" rel="noopener">view on Polymarket ↗</a>`
+        : "";
+
+      const tag = (r.c && r.s) ? `${escapeHtml(r.c)} · ${escapeHtml(r.s)}` : (r.c ? escapeHtml(r.c) : "");
+
+      return `
+        <article class="open-row" data-id="${escapeHtml(r.id)}">
+          <header class="open-row-head">
+            <span class="open-tag">${tag}</span>
+            <span class="open-end ${endCls}">${escapeHtml(endTxt)}</span>
+          </header>
+          <h3 class="open-q">${escapeHtml(r.q)}</h3>
+          <div class="open-bars">
+            <div class="open-bar">
+              <span class="open-bar-lbl">you</span>
+              <span class="open-bar-val">${youPct}%</span>
+            </div>
+            <div class="open-bar">
+              <span class="open-bar-lbl">market at submit</span>
+              <span class="open-bar-val">${mktPct}%</span>
+            </div>
+            <div class="open-bar open-delta">
+              <span class="open-bar-lbl">delta</span>
+              <span class="open-bar-val ${deltaCls}">${deltaTxt}</span>
+            </div>
+          </div>
+          ${linkHtml ? `<div class="open-row-foot">${linkHtml}</div>` : ""}
+        </article>
+      `;
+    }).join("");
+
+    list.innerHTML = html;
   }
 
   function renderReveal(rec, m, score, mp) {
@@ -1402,6 +1517,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
     renderSession();
     renderDeckStrip();
+    renderNavCount();
     renderOnboarding();
 
     // slider
@@ -1439,6 +1555,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("btn-mode-resolved").addEventListener("click", () => switchMode("resolved"));
     $("btn-mode-active").addEventListener("click", () => switchMode("active"));
     renderModeToggle();
+
+    // Empty-tray "Go to Active mode" button: jump to Play and ensure we're
+    // in active mode so the user can immediately make their first prediction.
+    const goActiveBtn = $("btn-open-go-active");
+    if (goActiveBtn) {
+      goActiveBtn.addEventListener("click", async () => {
+        showView("play");
+        await switchMode("active");
+      });
+    }
 
     // description toggle - on phone we toggle hidden vs fully shown; on
     // desktop we toggle the collapsed-with-fade preview vs fully expanded.
