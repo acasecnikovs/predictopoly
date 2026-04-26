@@ -399,7 +399,21 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     current = m;
     $("m-cat").textContent  = m.c || "";
     $("m-sub").textContent  = m.s || "";
-    $("m-date").textContent = "resolved " + fmtDate(m.t);
+    // Show market open date alongside resolution date so users can tell
+    // "predict 1 day before" from "predict 30 days before" - for date-sensitive
+    // questions ("rain in 2025") that distinction changes the problem entirely.
+    // Bare dates with arrow keep the line short; tooltip spells out the labels.
+    // Falls back to resolution-only when ts is missing (~8% of full dataset).
+    const dateEl = $("m-date");
+    if (m.ts) {
+      dateEl.textContent = `${fmtDate(m.ts)} → ${fmtDate(m.t)}`;
+      dateEl.dataset.tip = `opened ${fmtDate(m.ts)}, resolved ${fmtDate(m.t)}`;
+      dateEl.classList.add("has-tip");
+    } else {
+      dateEl.textContent = `resolved ${fmtDate(m.t)}`;
+      delete dateEl.dataset.tip;
+      dateEl.classList.remove("has-tip");
+    }
     $("m-vol").textContent  = fmtVol(m.v);
     const qEl = $("m-question");
     qEl.textContent = m.q || "";
