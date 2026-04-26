@@ -181,6 +181,12 @@ main {
   z-index: 10;
 }
 .has-tip:hover::after, .has-tip:focus::after { opacity: 1; }
+/* Touch devices have flaky :hover and the tooltip would overflow narrow
+   viewports anyway. Hide on no-hover devices, fall back to bare dates. */
+@media (hover: none) {
+  .has-tip::after { display: none; }
+  .has-tip { cursor: default; }
+}
 
 .question {
   font-size: 1.5rem; line-height: 1.3; font-weight: 500;

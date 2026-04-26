@@ -286,10 +286,20 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (!arr) return false;
     return arr.indexOf(sub) >= 0;
   }
+  // Markets resolved within this window are too fresh to be reliably forgotten -
+  // the user might just remember the news outcome instead of reasoning from priors.
+  // 60 days catches "this month's headlines" without being overaggressive.
+  const HINDSIGHT_DAYS = 60;
+  function isHindsightSpoiler(m) {
+    if (!m.t) return false;
+    const days = (Date.now() - new Date(m.t).getTime()) / 86400000;
+    return days >= 0 && days < HINDSIGHT_DAYS;
+  }
   function marketPasses(m) {
     // Source of truth for "is this market in the active deck right now?"
     // Edition picks bypass the volume filter - they're hand-curated, the
     // filter is meant for taming the long tail of low-volume custom decks.
+    if (isHindsightSpoiler(m)) return false;
     if (prefs.mode === "hot") return !!m.hot;
     const minVol = VOL_STEPS[prefs.volIdx];
     if ((m.v || 0) < minVol) return false;
