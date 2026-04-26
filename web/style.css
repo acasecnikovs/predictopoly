@@ -671,10 +671,21 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   list-style: none;
 }
 .for-nerds summary::-webkit-details-marker { display: none; }
+/* Bigger, bolder triangle than the default ▸ - it was reading as a dot at
+   summary's 13px font size. Switched to filled BLACK glyphs (▶ / ▼), bumped
+   1.25x with an explicit width so the label doesn't shift on toggle, and
+   colored to --text so it doesn't blend into the muted summary copy. */
 .for-nerds summary::before {
-  content: "▸ "; transition: transform 0.15s ease; display: inline-block;
+  content: "▶";
+  display: inline-block;
+  width: 1em;
+  margin-right: 0.4em;
+  font-size: 1.25em;
+  line-height: 1;
+  color: var(--text);
+  transition: transform 0.15s ease;
 }
-.for-nerds[open] summary::before { content: "▾ "; }
+.for-nerds[open] summary::before { content: "▼"; }
 .for-nerds .stat-grid { margin: 1rem 0 0.25rem; }
 .for-nerds .stat-val { font-size: 1.125rem; }
 
