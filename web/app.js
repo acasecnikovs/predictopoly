@@ -574,8 +574,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       bars.appendChild(div);
     }
 
-    // hide percentile until backend responds (or fails)
-    $("r-percentile").classList.add("hidden");
+    // Show the percentile line immediately with a placeholder so it
+    // doesn't slide in late after the points/bars have settled. The
+    // backend fills the real number in within ~100-300ms; on failure or
+    // n<3 we hide the line again (one-time layout shift, but only on the
+    // sad path).
+    const pctEl = $("r-percentile");
+    const pctVal = $("r-percentile-val");
+    pctEl.classList.remove("hidden");
+    pctVal.textContent = "···";
+    pctVal.classList.add("loading-pulse");
 
     // link + meta - slug is lazy-loaded, hide link until it lands
     const link = $("r-link");
@@ -601,11 +609,20 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       });
       if (!res.ok) return;
       const data = await res.json();
+      const pctVal = $("r-percentile-val");
+      pctVal.classList.remove("loading-pulse");
       if (data && typeof data.percentile === "number" && data.n >= 3) {
-        $("r-percentile-val").textContent = `${Math.round(data.percentile)}%`;
+        pctVal.textContent = `${Math.round(data.percentile)}%`;
         $("r-percentile").classList.remove("hidden");
+      } else {
+        // Not enough plays yet to show a meaningful percentile.
+        $("r-percentile").classList.add("hidden");
       }
-    } catch { /* offline / no backend - hide silently */ }
+    } catch {
+      // Offline or no backend. Hide the placeholder rather than leave it pulsing.
+      $("r-percentile-val").classList.remove("loading-pulse");
+      $("r-percentile").classList.add("hidden");
+    }
   }
 
   // ------- next / skip -------

@@ -170,11 +170,13 @@ main {
   content: attr(data-tip);
   position: absolute;
   left: 0; bottom: calc(100% + 6px);
-  padding: 0.4rem 0.6rem;
-  background: var(--text); color: var(--bg);
+  padding: 0.5rem 0.7rem;
+  background: #fff; color: var(--text);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   font-size: 0.75rem; font-weight: 500;
   white-space: nowrap;
-  border-radius: 4px;
+  border-radius: 6px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.12s ease;
@@ -186,8 +188,10 @@ main {
    running off-screen. */
 .has-tip-wide::after {
   white-space: normal;
-  max-width: 260px;
-  line-height: 1.4;
+  width: max-content;
+  max-width: 360px;
+  line-height: 1.45;
+  color: var(--muted);
 }
 /* Right-anchor variant for tooltips at the end of a line. Without this
    the tooltip extends rightward from left:0 and clips the viewport. */
@@ -405,11 +409,22 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   margin-top: 0.75rem;
   font-size: 0.875rem; color: var(--text);
 }
-.percentile b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.percentile b {
+  color: var(--accent); font-variant-numeric: tabular-nums;
+  /* Reserve space for the eventual number so the (?) and the rest of
+     the sentence don't shift when the placeholder gets swapped out.
+     2.6em fits "100%" comfortably with tabular-nums. */
+  display: inline-block;
+  min-width: 2.6em;
+  text-align: center;
+}
 .percentile-info {
   font-size: 0.75rem; color: var(--muted);
   margin-left: 0.15rem;
 }
+/* Used while the percentile API is in flight - reuses the question's
+   pulse animation so the placeholder reads as "loading" not "broken". */
+.loading-pulse { animation: q-pulse 1.4s ease-in-out infinite; }
 
 /* bars */
 
