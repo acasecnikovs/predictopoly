@@ -210,7 +210,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- data -------
   // Cache-bust by app version so taxonomy revisions actually reach the browser.
-  const DATA_V = "20";
+  const DATA_V = "21";
 
   // First paint only needs the 87-question hot pack (~7 KB brotli). The full
   // markets.json (1.3 MB brotli) loads in the background and swaps in when
@@ -1667,6 +1667,120 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
     renderReliability(hist);
     renderByCategory(hist);
+    renderArchive(hist);
+  }
+
+  // ------- archive (recent predictions list) -------
+  // The user wanted concrete past predictions, not just aggregate stats -
+  // dopamine source for "I beat the market on this one". Mirrors the open-tray
+  // row pattern. Paginated 30-at-a-time so a user with 500 entries doesn't
+  // blow up the DOM on every stats view paint.
+  const ARCHIVE_PAGE_SIZE = 30;
+  let archiveLimit = ARCHIVE_PAGE_SIZE;
+
+  function archiveSlugFor(rec) {
+    // Active-origin entries point at active-deck markets (gone from the
+    // resolved deck), so try active slugs first. Falls back to whichever
+    // map has it - same id namespace.
+    const origin = rec.origin || "resolved";
+    if (origin === "active") return slugsActive[rec.id] || slugs[rec.id] || null;
+    return slugs[rec.id] || slugsActive[rec.id] || null;
+  }
+
+  function archiveRowHtml(rec) {
+    const o = rec.o;
+    const youPct = Math.round(rec.p * 100);
+    // "Right" if the side they leaned >50% toward matched the outcome. A
+    // 50% pick is neither right nor wrong - we color it neutral.
+    let leanCls = "neutral";
+    if (rec.p > 0.5) leanCls = (o === 1) ? "right" : "wrong";
+    else if (rec.p < 0.5) leanCls = (o === 0) ? "right" : "wrong";
+
+    const yn = rec.yn || "";
+    const outcomeTxt = o === 1
+      ? (yn ? `YES (${yn})` : "YES")
+      : (yn ? `NO (not ${yn})` : "NO");
+    const outcomeCls = o === 1 ? "yes" : "no";
+
+    const pts = rec.pts || 0;
+    const ptsCls = pts > 0 ? "pos" : (pts < 0 ? "neg" : "zero");
+
+    // Earliest available market price as the "what the market said" anchor.
+    // Active-origin entries store p_at_submit in mkt1.
+    const mp = rec.mkt30 ?? rec.mkt7 ?? rec.mkt1 ?? null;
+    const mpTxt = (mp != null) ? `${Math.round(mp * 100)}%` : null;
+
+    const tag = (rec.c && rec.s) ? `${escapeHtml(rec.c)} · ${escapeHtml(rec.s)}` : (rec.c ? escapeHtml(rec.c) : "");
+    const dateTxt = rec.t ? fmtDate(rec.t) : "";
+    const originBadge = (rec.origin === "active")
+      ? `<span class="archive-origin" title="Predicted on a then-open market that has since resolved">active</span>`
+      : "";
+
+    const slug = archiveSlugFor(rec);
+    const linkHtml = slug
+      ? `<a class="archive-link" href="https://polymarket.com/market/${escapeHtml(slug)}" target="_blank" rel="noopener">view on Polymarket ↗</a>`
+      : "";
+
+    const mktLine = (mpTxt != null)
+      ? `<span class="archive-mkt">market said ${mpTxt}</span>`
+      : "";
+
+    return `
+      <article class="archive-row archive-${leanCls}">
+        <header class="archive-row-head">
+          <span class="archive-tag">${tag}${originBadge}</span>
+          <span class="archive-date muted">${escapeHtml(dateTxt)}</span>
+        </header>
+        <h4 class="archive-q">${escapeHtml(rec.q || "")}</h4>
+        <div class="archive-line">
+          <span class="archive-you">you said <b>${youPct}%</b></span>
+          ${mktLine}
+          <span class="archive-outcome ${outcomeCls}">${escapeHtml(outcomeTxt)}</span>
+          <span class="archive-pts ${ptsCls}">${fmtPts(pts)} pts</span>
+        </div>
+        ${linkHtml ? `<div class="archive-foot">${linkHtml}</div>` : ""}
+      </article>
+    `;
+  }
+
+  function renderArchive(hist) {
+    const list = $("archive-list");
+    const empty = $("archive-empty");
+    const more = $("btn-archive-more");
+    if (!list) return;
+    if (!hist) hist = statsHistory();
+
+    if (!hist.length) {
+      list.innerHTML = "";
+      if (empty) empty.classList.remove("hidden");
+      if (more) more.classList.add("hidden");
+      return;
+    }
+    if (empty) empty.classList.add("hidden");
+
+    // Newest first. Stable sort - identical timestamps keep insertion order.
+    const sorted = hist.slice().sort((a, b) => (b.t || 0) - (a.t || 0));
+    const visible = sorted.slice(0, archiveLimit);
+    list.innerHTML = visible.map(archiveRowHtml).join("");
+
+    if (more) {
+      const remaining = sorted.length - visible.length;
+      if (remaining > 0) {
+        more.textContent = `Show ${Math.min(ARCHIVE_PAGE_SIZE, remaining)} more (${remaining} remaining)`;
+        more.classList.remove("hidden");
+      } else {
+        more.classList.add("hidden");
+      }
+    }
+
+    // Slugs may not be loaded for active-origin entries when the user
+    // first opens Stats from resolved mode. Kick the active fetch and
+    // re-paint when it lands so links light up shortly after.
+    if (!activeLoaded && hist.some((r) => r.origin === "active")) {
+      loadActiveData().then(() => {
+        if (currentView === "stats") renderArchive();
+      });
+    }
   }
 
   function renderReliability(hist) {
@@ -1911,6 +2025,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       bannerCta.addEventListener("click", () => {
         hideResolvedBanner();
         statsScope = "active";
+        archiveLimit = ARCHIVE_PAGE_SIZE;
         showView("stats");
       });
     }
@@ -1926,9 +2041,22 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       btn.addEventListener("click", () => {
         if (statsScope === s) return;
         statsScope = s;
+        // Reset archive pagination - showing 5/120 from the previous scope
+        // leaks state (and is confusing) when the user switches.
+        archiveLimit = ARCHIVE_PAGE_SIZE;
         renderStats();
       });
     });
+
+    // Archive "Show more" - additive paging, doesn't trigger a full
+    // renderStats since the chart and aggregates haven't changed.
+    const archiveMore = $("btn-archive-more");
+    if (archiveMore) {
+      archiveMore.addEventListener("click", () => {
+        archiveLimit += ARCHIVE_PAGE_SIZE;
+        renderArchive();
+      });
+    }
 
     // description toggle - on phone we toggle hidden vs fully shown; on
     // desktop we toggle the collapsed-with-fade preview vs fully expanded.

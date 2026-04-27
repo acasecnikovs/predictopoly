@@ -689,21 +689,22 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   list-style: none;
 }
 .for-nerds summary::-webkit-details-marker { display: none; }
-/* Hairline outline triangle that matches the muted summary copy. We tried
-   filled --text glyphs at 1.25em earlier; they shouted "interactive" at the
-   wrong volume given the section is a deliberate "open if you care" detail. */
+/* Filled chevron at moderate weight - readable but not shouting. Earlier
+   iterations were too bold at 1.25em --text (competed with the section
+   content) or too quiet at 1em --muted 0.7-opacity (vanished). Sat at
+   1.1em --muted full-opacity, which reads as "section toggle" without
+   stealing focus. */
 .for-nerds summary::before {
-  content: "▸";
+  content: "▶";
   display: inline-block;
-  width: 0.9em;
-  margin-right: 0.3em;
-  font-size: 1em;
+  width: 0.95em;
+  margin-right: 0.35em;
+  font-size: 1.1em;
   line-height: 1;
   color: var(--muted);
-  opacity: 0.7;
   transition: transform 0.15s ease;
 }
-.for-nerds[open] summary::before { content: "▾"; }
+.for-nerds[open] summary::before { content: "▼"; }
 .for-nerds .stat-grid { margin: 1rem 0 0.25rem; }
 .for-nerds .stat-val { font-size: 1.125rem; }
 
@@ -1113,4 +1114,92 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
   .open-bar-lbl { font-size: 0.65rem; }
   .open-row-head { flex-direction: column; gap: 0.15rem; }
   .open-end { text-align: left; }
+  .archive-row { padding: 0.7rem 0.85rem 0.85rem; }
+  .archive-q { font-size: 0.95rem; }
+  .archive-line { font-size: 0.85rem; gap: 0.5rem 0.75rem; flex-wrap: wrap; }
 }
+
+/* Archive of past predictions in the Stats view. Same row pattern as the
+   Open tray for visual consistency, but shows you said / market said /
+   outcome / points instead of pending state. Left border picks up red/green
+   based on whether the user's leaning matched the actual outcome - tiny
+   peripheral signal that helps the eye scan for wins/losses. */
+.archive-heading { margin-top: 2.25rem; }
+.archive-lede { margin-top: -0.4rem; margin-bottom: 1rem; max-width: 60ch; }
+.archive-empty { padding: 1rem 0; }
+
+.archive-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.archive-row {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: 8px;
+  padding: 0.8rem 1rem 0.85rem;
+  background: var(--bg);
+  transition: border-color 0.1s ease, background 0.1s ease;
+}
+.archive-row:hover { border-color: var(--accent-line); }
+.archive-row.archive-right { border-left-color: var(--yes); }
+.archive-row.archive-wrong { border-left-color: var(--no); }
+.archive-row.archive-neutral { border-left-color: var(--line); }
+
+.archive-row-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  margin-bottom: 0.3rem;
+}
+.archive-tag {
+  color: var(--muted); text-transform: lowercase; letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+}
+.archive-origin {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.archive-date { font-variant-numeric: tabular-nums; }
+
+.archive-q {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+.archive-line {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+.archive-you b { font-weight: 600; }
+.archive-mkt { color: var(--muted); }
+.archive-outcome {
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 3px;
+}
+.archive-outcome.yes { background: var(--yes-soft); color: var(--yes); }
+.archive-outcome.no  { background: var(--no-soft);  color: var(--no);  }
+.archive-pts { font-variant-numeric: tabular-nums; font-weight: 600; }
+.archive-pts.pos  { color: var(--yes); }
+.archive-pts.neg  { color: var(--no); }
+.archive-pts.zero { color: var(--muted); }
+
+.archive-foot {
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+}
+.archive-link {
+  color: var(--muted);
+  border-bottom: 1px solid transparent;
+}
+.archive-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+.archive-more-row { margin: 1rem 0 0; text-align: center; }
+.archive-more-row .ghost.small { font-size: 0.85rem; padding: 0.4rem 0.9rem; }
