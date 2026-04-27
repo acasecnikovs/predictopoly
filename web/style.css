@@ -959,6 +959,14 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .open-empty .empty-title { margin: 0 0 0.5rem 0; font-size: 1.05rem; color: var(--text); }
 .open-empty .empty-body { margin: 0 auto 1.25rem; max-width: 50ch; }
 
+.open-check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.open-check-row #open-check-status { line-height: 1.2; }
+
 .open-list { display: flex; flex-direction: column; gap: 0.75rem; }
 
 .open-row {

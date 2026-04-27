@@ -210,7 +210,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- data -------
   // Cache-bust by app version so taxonomy revisions actually reach the browser.
-  const DATA_V = "19";
+  const DATA_V = "20";
 
   // First paint only needs the 87-question hot pack (~7 KB brotli). The full
   // markets.json (1.3 MB brotli) loads in the background and swaps in when
@@ -866,6 +866,11 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       ev: m.ev || null,
       end: m.end || "",
       v: m.v || 0,
+      // Carry the YES-side label so we can render the disambiguated
+      // outcome ("YES (Weibo)") when the resolver scores this entry.
+      // Without this the upgraded history record would lose the alias
+      // because the source market is gone from the active deck by then.
+      yn: m.yn || "",
       status: "pending",
       t: Date.now(),
     };
@@ -942,14 +947,36 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   function renderOpenTray() {
     const list = $("open-list");
     const empty = $("open-empty");
+    const checkRow = $("open-check-row");
+    const checkStatus = $("open-check-status");
     if (!list || !empty) return;
+
+    // Hide any stale "Scored N..." status from the previous tray render.
+    if (checkStatus) {
+      checkStatus.textContent = "";
+      checkStatus.classList.add("hidden");
+    }
 
     if (!pending.length) {
       list.innerHTML = "";
       empty.classList.remove("hidden");
+      if (checkRow) checkRow.classList.add("hidden");
       return;
     }
     empty.classList.add("hidden");
+
+    // Only show the "Check now" affordance when at least one pending entry
+    // is past its endDate. Otherwise there's nothing the button could do
+    // (every market is still open) and showing it is just noise.
+    if (checkRow) {
+      const now = Date.now();
+      const anyDue = pending.some((r) => {
+        if (!r.end) return false;
+        const t = new Date(r.end).getTime();
+        return Number.isFinite(t) && t < now;
+      });
+      checkRow.classList.toggle("hidden", !anyDue);
+    }
 
     // Make sure active slugs are in flight even if user is in resolved mode -
     // pending links resolve once the file lands.
@@ -1104,6 +1131,143 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     }
     const mpTxt = mp ? `· market said ${(mp.p * 100).toFixed(0)}% (${mp.label})` : "";
     $("r-meta-foot").textContent = `resolved ${fmtDate(m.t)} ${mpTxt}`.trim();
+  }
+
+  // ------- resolution upgrade (Phase B.3) -------
+  // Pending entries past their endDate are candidates for resolution.
+  // We POST batches of ids to /api/check-resolution; for each market that
+  // gamma reports as definitively resolved (closed=true + outcome >=0.99),
+  // we score with pointsFor(rec.p, outcome, p_at_submit), build a history
+  // record marked origin:"active", remove from pending, and push to history.
+  // Markets whose endDate has passed but haven't resolved yet stay pending
+  // and get re-checked on the next boot / button press.
+  let checkingResolutions = false;
+  let lastResolutionCheck = 0;
+  const RESOLUTION_CHECK_COOLDOWN_MS = 30_000;
+
+  async function checkPendingResolutions({ manual = false } = {}) {
+    if (checkingResolutions) return { checked: 0, resolved: 0 };
+    // Cheap rate limit. Boot fires this automatically; if the user spams
+    // the manual button we don't want to hammer gamma even though the
+    // edge cache absorbs most of it.
+    const now = Date.now();
+    if (!manual && now - lastResolutionCheck < RESOLUTION_CHECK_COOLDOWN_MS) {
+      return { checked: 0, resolved: 0 };
+    }
+
+    // Anything whose endDate is in the past is fair game. We don't filter
+    // by some grace period because gamma already gates closed=true; if it
+    // hasn't flipped yet we'll just get resolved:false and try again next time.
+    const due = pending.filter((r) => {
+      if (!r.end) return false;
+      const t = new Date(r.end).getTime();
+      return Number.isFinite(t) && t < now;
+    });
+    if (!due.length) return { checked: 0, resolved: 0 };
+
+    checkingResolutions = true;
+    lastResolutionCheck = now;
+    const btn = $("btn-check-resolutions");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Checking…";
+    }
+
+    const resolvedIds = new Set();
+    try {
+      // Pages Function caps at 50 ids per call; chunk accordingly. Most
+      // users will have <10 pending so this loop runs once.
+      for (let i = 0; i < due.length; i += 50) {
+        const chunk = due.slice(i, i + 50);
+        const ids = chunk.map((r) => r.id);
+        let data;
+        try {
+          const res = await fetch("/api/check-resolution", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids }),
+          });
+          if (!res.ok) continue;
+          data = await res.json();
+        } catch {
+          // Network blip - leave the chunk pending, try again next boot.
+          continue;
+        }
+
+        const resolutions = (data && data.resolutions) || {};
+        for (const rec of chunk) {
+          const r = resolutions[rec.id];
+          if (!r || !r.resolved) continue;
+
+          const o = r.outcome === 1 ? 1 : 0;
+          const mktP = (typeof rec.p_at_submit === "number") ? rec.p_at_submit : null;
+          const score = pointsFor(rec.p, o, mktP);
+
+          const hist = {
+            id: rec.id,
+            q: rec.q,
+            p: rec.p,
+            o,
+            brier: score.yourBrier,
+            log: logScore(rec.p, o),
+            pts: score.total,
+            ptsCal: score.calibration,
+            ptsMkt: score.marketBeat,
+            c: rec.c, s: rec.s,
+            // Active-mode entries don't have lookback prices - the only
+            // benchmark we have is the price at submit time. Stash it as
+            // mkt1 so the reveal/stats code that already understands those
+            // fields keeps working without a special case.
+            mkt30: null, mkt7: null, mkt1: mktP,
+            yn: rec.yn || "",
+            origin: "active",
+            t: Date.now(),
+            // Snapshot of when the market actually resolved (best effort -
+            // gamma doesn't always tell us the exact timestamp, so we use
+            // the check time as a proxy). Useful for stats slicing later.
+            t_resolved: Date.now(),
+            // Keep the "you predicted at" timestamp so calibration over
+            // time still attributes to when the user actually thought.
+            t_predicted: rec.t || null,
+          };
+          history.push(hist);
+          resolvedIds.add(rec.id);
+        }
+      }
+
+      if (resolvedIds.size > 0) {
+        pending = pending.filter((r) => !resolvedIds.has(r.id));
+        savePending();
+        saveHistory();
+        renderNavCount();
+        renderSession();
+        if (currentView === "open") renderOpenTray();
+        else if (currentView === "stats") renderStats();
+      }
+    } finally {
+      checkingResolutions = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Check now";
+      }
+    }
+
+    if (manual) {
+      // Surface the result so the user knows the click did something even
+      // when nothing flipped. Cheap inline status, no toast plumbing.
+      const status = $("open-check-status");
+      if (status) {
+        const n = resolvedIds.size;
+        if (n > 0) {
+          status.textContent = `Scored ${n} prediction${n === 1 ? "" : "s"}.`;
+        } else {
+          status.textContent = "No resolutions yet - markets are still pending.";
+        }
+        status.classList.remove("hidden");
+      }
+    }
+
+    return { checked: due.length, resolved: resolvedIds.size };
   }
 
   // ------- percentile (backend) -------
@@ -1655,6 +1819,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     renderNavCount();
     renderOnboarding();
 
+    // Phase B.3: when the app boots, sweep any pending entries whose
+    // markets have already closed and upgrade the resolved ones into
+    // history. Fire-and-forget - the UI already painted, this just
+    // refreshes nav count / open tray / stats once results come back.
+    if (pending.length) {
+      checkPendingResolutions().catch(() => {});
+    }
+
     // slider
     const slider = $("p-slider");
     slider.addEventListener("input", (e) => setBubble(+e.target.value));
@@ -1698,6 +1870,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       goActiveBtn.addEventListener("click", async () => {
         showView("play");
         await switchMode("active");
+      });
+    }
+
+    // Manual "Check now" - in case the user wants to re-check after the
+    // boot-time sweep (e.g. they kept the tab open and a market they were
+    // tracking just closed). Same code path as the auto-sweep.
+    const checkBtn = $("btn-check-resolutions");
+    if (checkBtn) {
+      checkBtn.addEventListener("click", () => {
+        checkPendingResolutions({ manual: true }).catch(() => {});
       });
     }
 
