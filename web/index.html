@@ -46,6 +46,21 @@
 
 <main>
 
+  <!-- Phase B.3: appears after a boot-time resolution sweep promotes any
+       pending entries into history, so the user knows what happened
+       without having to dig through Open / Stats. Click jumps to Stats
+       in active scope; X dismisses for the session. -->
+  <div id="resolved-banner" class="resolved-banner hidden" role="status">
+    <div class="resolved-banner-body">
+      <span class="resolved-banner-icon" aria-hidden="true">✓</span>
+      <span class="resolved-banner-text" id="resolved-banner-text"></span>
+    </div>
+    <div class="resolved-banner-actions">
+      <button id="btn-resolved-banner-view" class="resolved-banner-cta" type="button">See results <span class="arrow">→</span></button>
+      <button id="btn-resolved-banner-dismiss" class="resolved-banner-close" type="button" aria-label="dismiss">✕</button>
+    </div>
+  </div>
+
   <div class="deck-strip">
     <div class="mode-toggle" role="tablist" aria-label="market mode">
       <button id="btn-mode-resolved" class="mode-tab current" data-mode="resolved" role="tab" aria-selected="true" title="Train on Polymarket questions that already resolved">Resolved</button>

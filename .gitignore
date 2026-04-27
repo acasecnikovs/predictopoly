@@ -21,3 +21,6 @@ scripts/hot_picks_with_reasons.json
 scripts/hot_picks_v2_reasons.json
 
 .wrangler/
+
+# local-only seed page for testing the resolution flow
+web/_seed-resolved-demo.html

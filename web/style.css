@@ -689,21 +689,21 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   list-style: none;
 }
 .for-nerds summary::-webkit-details-marker { display: none; }
-/* Bigger, bolder triangle than the default ▸ - it was reading as a dot at
-   summary's 13px font size. Switched to filled BLACK glyphs (▶ / ▼), bumped
-   1.25x with an explicit width so the label doesn't shift on toggle, and
-   colored to --text so it doesn't blend into the muted summary copy. */
+/* Hairline outline triangle that matches the muted summary copy. We tried
+   filled --text glyphs at 1.25em earlier; they shouted "interactive" at the
+   wrong volume given the section is a deliberate "open if you care" detail. */
 .for-nerds summary::before {
-  content: "▶";
+  content: "▸";
   display: inline-block;
-  width: 1em;
-  margin-right: 0.4em;
-  font-size: 1.25em;
+  width: 0.9em;
+  margin-right: 0.3em;
+  font-size: 1em;
   line-height: 1;
-  color: var(--text);
+  color: var(--muted);
+  opacity: 0.7;
   transition: transform 0.15s ease;
 }
-.for-nerds[open] summary::before { content: "▼"; }
+.for-nerds[open] summary::before { content: "▾"; }
 .for-nerds .stat-grid { margin: 1rem 0 0.25rem; }
 .for-nerds .stat-val { font-size: 1.125rem; }
 
@@ -966,6 +966,68 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
   margin-bottom: 0.75rem;
 }
 .open-check-row #open-check-status { line-height: 1.2; }
+
+/* "X predictions just resolved" banner shown at the top of <main> after the
+   boot-time resolution sweep promotes anything. Soft accent so it reads as
+   good news rather than an error/alert. */
+.resolved-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--accent-line, var(--line));
+  border-radius: 8px;
+  background: var(--bg-soft);
+  font-size: 0.9rem;
+}
+.resolved-banner-body {
+  display: flex; align-items: center; gap: 0.6rem; min-width: 0;
+}
+.resolved-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: var(--good, #2e7d32);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.resolved-banner-text { color: var(--text); }
+.resolved-banner-text b { font-weight: 600; }
+.resolved-banner-actions {
+  display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;
+}
+.resolved-banner-cta {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.resolved-banner-cta:hover { border-color: var(--accent-line, var(--text)); }
+.resolved-banner-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+.resolved-banner-close:hover { color: var(--text); }
+@media (max-width: 540px) {
+  .resolved-banner { flex-direction: column; align-items: flex-start; }
+  .resolved-banner-actions { align-self: flex-end; }
+}
 
 .open-list { display: flex; flex-direction: column; gap: 0.75rem; }
 

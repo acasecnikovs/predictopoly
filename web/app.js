@@ -1133,6 +1133,22 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("r-meta-foot").textContent = `resolved ${fmtDate(m.t)} ${mpTxt}`.trim();
   }
 
+  // ------- resolved-sweep banner (Phase B.3 surface) -------
+  // Tiny session-only state so we don't double-prompt within the same load.
+  // We deliberately don't persist dismissal: if the user reloads tomorrow
+  // and another sweep resolves more entries, they should see the new count.
+  function showResolvedBanner(n) {
+    const el = $("resolved-banner");
+    const txt = $("resolved-banner-text");
+    if (!el || !txt) return;
+    txt.innerHTML = `<b>${n}</b> active prediction${n === 1 ? "" : "s"} just resolved.`;
+    el.classList.remove("hidden");
+  }
+  function hideResolvedBanner() {
+    const el = $("resolved-banner");
+    if (el) el.classList.add("hidden");
+  }
+
   // ------- resolution upgrade (Phase B.3) -------
   // Pending entries past their endDate are candidates for resolution.
   // We POST batches of ids to /api/check-resolution; for each market that
@@ -1243,6 +1259,11 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
         renderSession();
         if (currentView === "open") renderOpenTray();
         else if (currentView === "stats") renderStats();
+        // Surface the result on the Play view so the user notices the
+        // resolution sweep happened. Without this the only signal is the
+        // nav badge ticking down, which is too quiet for "your prediction
+        // got scored - here are your points".
+        showResolvedBanner(resolvedIds.size);
       }
     } finally {
       checkingResolutions = false;
@@ -1883,6 +1904,21 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       });
     }
 
+    // Just-resolved banner: "See results" jumps to stats in active scope so
+    // the user sees their newly-scored entries immediately. X dismisses.
+    const bannerCta = $("btn-resolved-banner-view");
+    if (bannerCta) {
+      bannerCta.addEventListener("click", () => {
+        hideResolvedBanner();
+        statsScope = "active";
+        showView("stats");
+      });
+    }
+    const bannerDismiss = $("btn-resolved-banner-dismiss");
+    if (bannerDismiss) {
+      bannerDismiss.addEventListener("click", hideResolvedBanner);
+    }
+
     // Stats scope toggle (All / Resolved / Active)
     ["all", "resolved", "active"].forEach((s) => {
       const btn = $("btn-stats-" + s);
@@ -1988,6 +2024,12 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       const isTextInput = (t.tagName === "TEXTAREA") ||
         (t.tagName === "INPUT" && !["range", "checkbox", "radio", "button", "submit"].includes(t.type));
       if (isTextInput) return;
+      // Hold-to-autoscroll guard: keydown fires repeatedly while a key is
+      // held (e.repeat=true). Without this, holding Enter would submit,
+      // immediately trigger nextQuestion on the next repeat, and rip
+      // through the deck without the user ever reading anything. We want
+      // strictly one keypress -> one action.
+      if (e.repeat) return;
       if ($("deck-modal") && !$("deck-modal").classList.contains("hidden")) {
         if (e.key === "Escape") closeDeckModal();
         return;
