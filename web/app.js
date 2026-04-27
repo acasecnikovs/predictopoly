@@ -548,9 +548,26 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     const seen = new Set(history.map((h) => h.id));
     return markets.filter((m) => !seen.has(m.id) && marketPasses(m));
   }
+  // Multi-outcome events ("Who wins the 2028 Dem nom?") are stored as N
+  // candidate-binary slices but a session only ever shows one of them
+  // (seenEvents collapse). Counting raw markets overstates the deck by 3-5x
+  // for sport leagues / candidate races - the user thinks "84 questions"
+  // and exhausts after 26. So display counts are session-honest: unique
+  // events plus standalone markets.
+  function uniqueEventCount(arr) {
+    const seen = new Set();
+    let n = 0;
+    for (const m of arr) {
+      const key = m.ev || m.id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      n++;
+    }
+    return n;
+  }
   // Total deck size, ignoring seen history. For display, not for picking.
   function deckSize() {
-    return markets.filter(marketPasses).length;
+    return uniqueEventCount(markets.filter(marketPasses));
   }
   function pickQuestion() {
     const pool = filteredPool();
@@ -1321,7 +1338,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     const v = VOL_STEPS[prefs.volIdx];
     $("vol-label").textContent = fmtVolTick(v);
     const total = deckSize();
-    const unseen = filteredPool().length;
+    const unseen = uniqueEventCount(filteredPool());
     if (total === 0) {
       $("deck-pool-info").textContent = "no questions match";
     } else if (unseen === total) {
