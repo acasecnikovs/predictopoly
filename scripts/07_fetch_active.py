@@ -32,12 +32,11 @@ import pandas as pd
 REPO = Path(__file__).resolve().parent.parent
 DATA = REPO / "data"
 
-POLYBOT_SRC = Path("/Users/acasecnikovs/Documents/GitHub/polymarket-bot/src")
-if not POLYBOT_SRC.exists():
-    print(f"polymarket-bot src not found at {POLYBOT_SRC}", file=sys.stderr)
-    sys.exit(2)
-sys.path.insert(0, str(POLYBOT_SRC))
-from polymarket_bot import api  # noqa: E402
+# Vendored gamma-api helpers (see scripts/_gamma_api.py for upstream notes).
+# Stays inside the repo so GitHub Actions runners don't need the polymarket-bot
+# sibling checkout that the original local-only path required.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _gamma_api as api  # noqa: E402
 
 
 def _parse_iso(s):

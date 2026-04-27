@@ -1,0 +1,128 @@
+name: refresh-active
+
+# Daily refresh of the active-mode deck. Pipeline:
+#   07_fetch_active.py  -> data/active_markets.parquet         (gamma fetch)
+#   08_classify_active  -> data/active_markets_classified.parquet  (gemini, incremental)
+#   09_export_active    -> web/data/markets-active.json + sidecars (yn applied here)
+# Then: smoke check, DATA_V bump to short SHA, content-hash diff gate,
+# commit + push to main. Cloudflare Pages auto-deploys on the push.
+#
+# Caches (actions/cache) persist 08's progress jsonl and 09's descriptions
+# jsonl across runs so 08 only classifies the daily delta (a few hundred
+# markets) instead of the full 7000+ deck (which would burn ~$5/day on
+# gemini and break the cost-bounded incremental design).
+
+on:
+  schedule:
+    # 06:00 UTC daily. Low Polymarket activity window, well after US/EU
+    # primetime closes. Adjust if it ever clashes with anything.
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}  # manual trigger from Actions tab
+
+permissions:
+  contents: write  # needed for git push of regenerated bundle
+
+concurrency:
+  group: refresh-active
+  cancel-in-progress: false  # let an in-flight run finish before starting another
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need history so the diff-gate step can compare against the
+          # previous markets-active.json content hash.
+          fetch-depth: 2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas pyarrow google-generativeai
+
+      - name: Restore pipeline caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/active_classification_progress.jsonl
+            data/active_descriptions.jsonl
+          # Static key: we always want the latest cache. Save step at the
+          # end overwrites by appending. 7-day TTL on GHA cache means a
+          # week of dormancy resets us to cold; that's fine.
+          key: predictopoly-active-pipeline-v1
+          restore-keys: |
+            predictopoly-active-pipeline-
+
+      - name: Fetch active markets (07)
+        run: python scripts/07_fetch_active.py
+
+      - name: Classify (08, incremental)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/08_classify_active.py
+
+      - name: Export to web bundle (09)
+        run: python scripts/09_export_active_for_web.py
+
+      - name: Smoke check
+        run: |
+          python <<'PY'
+          import json, sys
+          m = json.load(open("web/data/markets-active.json"))
+          if len(m) < 1000:
+              sys.exit(f"FAIL: only {len(m)} markets, expected >=1000")
+          required = {"id", "q", "c", "s", "p_now", "end"}
+          missing = [r for r in m if not required.issubset(r)]
+          if missing:
+              sys.exit(f"FAIL: {len(missing)} records missing required fields")
+          tax = json.load(open("web/data/taxonomy-active.json"))
+          if len(tax) < 5:
+              sys.exit(f"FAIL: taxonomy has only {len(tax)} categories")
+          live_band = sum(1 for r in m if 0.05 <= r.get("p_now", 0) <= 0.95)
+          if live_band < 100:
+              sys.exit(f"FAIL: only {live_band} markets in 0.05-0.95 price band")
+          print(f"OK: {len(m)} markets, {len(tax)} categories, {live_band} in live band")
+          PY
+
+      - name: Bump DATA_V to short SHA
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          # In-place sed: const DATA_V = "..." -> const DATA_V = "<sha>"
+          # Trailing semicolon kept. Single line so anchor is unique.
+          sed -i 's|const DATA_V = "[^"]*";|const DATA_V = "'"$SHA"'";|' web/app.js
+          grep -n "const DATA_V" web/app.js
+
+      - name: Diff gate + commit
+        run: |
+          set -e
+          git config user.name "predictopoly-bot"
+          git config user.email "bot@predictopoly.local"
+
+          # If markets-active.json hasn't changed in content, skip the commit
+          # entirely. Avoids 30 noisy commits/month when nothing's moving.
+          if git diff --quiet web/data/markets-active.json; then
+              echo "No deck changes; skipping commit."
+              # Revert DATA_V bump so we don't ship a sha-only change.
+              git checkout -- web/app.js
+              exit 0
+          fi
+
+          MARKETS_COUNT=$(python -c 'import json; print(len(json.load(open("web/data/markets-active.json"))))')
+          DATE=$(date -u +%Y-%m-%d)
+
+          git add web/data/markets-active.json \
+                  web/data/slugs-active.json \
+                  web/data/taxonomy-active.json \
+                  web/data/descriptions-active.json \
+                  web/app.js
+          git commit -m "[bot] daily refresh ${DATE} - ${MARKETS_COUNT} markets"
+          git push origin HEAD:main
