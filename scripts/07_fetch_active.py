@@ -116,6 +116,11 @@ def to_row(m: dict, scan_time: datetime) -> dict | None:
         # it. Keeping it in the parquet means 09_export_active_for_web.py can
         # ship a descriptions-active.json without a separate fetch pass.
         "description": m.get("description") or "",
+        # Outcomes JSON ('["Yes","No"]' or '["Rublev","Medjedovic"]'). Drives
+        # the YES/NO disambiguation in 09 - markets like "LoL: Weibo vs
+        # Bilibili - Game 2 Winner" are unanswerable as YES/NO without
+        # knowing which side YES is. Cheap to capture here.
+        "outcomes": m.get("outcomes") or "",
         "category": None,
         "endDate": m.get("endDate"),
         "startDate": m.get("startDate"),

@@ -66,7 +66,12 @@ def _fetch_one_desc(mid: str):
         )
         with urllib.request.urlopen(req, timeout=_DESC_TIMEOUT, context=_SSL_CTX) as r:
             d = json.loads(r.read())
-        return {"id": str(mid), "desc": d.get("description") or "", "ok": True}
+        return {
+            "id": str(mid),
+            "desc": d.get("description") or "",
+            "outcomes": d.get("outcomes") or "",
+            "ok": True,
+        }
     except urllib.error.HTTPError as e:
         return {"id": str(mid), "ok": False, "err": f"HTTP {e.code}"}
     except Exception as e:
@@ -74,22 +79,33 @@ def _fetch_one_desc(mid: str):
 
 
 def fetch_missing_descriptions(ids):
-    """Resume-aware parallel fetch. Returns {id: description}."""
-    cache = {}
+    """Resume-aware parallel fetch. Returns ({id: description}, {id: outcomes})."""
+    desc_cache = {}
+    outcomes_cache = {}
+    have_data = set()  # ids we've already fetched (regardless of payload)
     if DESC_CACHE.exists():
         with DESC_CACHE.open() as f:
             for line in f:
                 try:
                     rec = json.loads(line)
-                    if rec.get("ok") and rec.get("desc"):
-                        cache[rec["id"]] = rec["desc"]
+                    if rec.get("ok"):
+                        rid = rec["id"]
+                        have_data.add(rid)
+                        if rec.get("desc"):
+                            desc_cache[rid] = rec["desc"]
+                        if rec.get("outcomes"):
+                            outcomes_cache[rid] = rec["outcomes"]
                 except Exception:
                     pass
-        print(f"  cache: {len(cache)} descriptions", file=sys.stderr)
+        print(f"  cache: {len(desc_cache)} descriptions, "
+              f"{len(outcomes_cache)} outcomes", file=sys.stderr)
 
-    todo = [i for i in ids if i not in cache]
+    # Re-fetch any id that has a desc-cache hit but no outcomes recorded -
+    # older cache entries pre-date the outcomes capture and miss the field.
+    todo = [i for i in ids
+            if i not in have_data or (i in desc_cache and i not in outcomes_cache)]
     if not todo:
-        return cache
+        return desc_cache, outcomes_cache
     print(f"  fetching {len(todo)} descriptions in parallel...", file=sys.stderr)
     t0 = time.time()
     n_ok = n_err = 0
@@ -101,7 +117,9 @@ def fetch_missing_descriptions(ids):
             if rec.get("ok"):
                 n_ok += 1
                 if rec.get("desc"):
-                    cache[rec["id"]] = rec["desc"]
+                    desc_cache[rec["id"]] = rec["desc"]
+                if rec.get("outcomes"):
+                    outcomes_cache[rec["id"]] = rec["outcomes"]
             else:
                 n_err += 1
             if i % 500 == 0:
@@ -111,7 +129,25 @@ def fetch_missing_descriptions(ids):
                       file=sys.stderr)
     print(f"  done: ok={n_ok} err={n_err} in {(time.time()-t0)/60:.1f}m",
           file=sys.stderr)
-    return cache
+    return desc_cache, outcomes_cache
+
+
+def yes_label(outcomes_json):
+    """Returns a plain-English 'YES means ...' label if outcomes aren't just Yes/No.
+    E.g. outcomes='["Rublev","Medjedovic"]' -> 'Rublev'. Returns '' for generic Yes/No.
+    """
+    if not outcomes_json:
+        return ""
+    try:
+        arr = json.loads(outcomes_json)
+    except (ValueError, TypeError):
+        return ""
+    if not isinstance(arr, list) or not arr:
+        return ""
+    first = str(arr[0]).strip()
+    if first.lower() in ("yes", "true", "1"):
+        return ""
+    return first
 
 # --- normalization, ported from 04_normalize_taxonomy.py ---
 
@@ -307,6 +343,15 @@ def main():
     df = pd.read_parquet(INPUT)
     print(f"Loaded {len(df)} active markets", file=sys.stderr)
 
+    # Outcomes from parquet, if 07 captured them. The fetch-fallback below
+    # fills any gaps (e.g. older parquets from before the outcomes field
+    # was added).
+    parquet_outcomes = {}
+    if "outcomes" in df.columns:
+        for rid, val in zip(df["id"].astype(str), df["outcomes"].fillna("")):
+            if isinstance(val, str) and val.strip():
+                parquet_outcomes[rid] = val
+
     records = []
     skipped_no_price = 0
     for row in df.itertuples(index=False):
@@ -323,8 +368,9 @@ def main():
             continue
         cat = row.category or "Miscellaneous"
         sub = row.subcategory or "Unclassified"
+        rid = str(row.id)
         rec = {
-            "id": str(row.id),
+            "id": rid,
             "q": q,
             "c": cat,
             "s": sub,
@@ -335,6 +381,9 @@ def main():
             "ev": str(row.event_id) if row.event_id else None,
         }
         rec["_slug"] = str(row.slug) if row.slug else ""
+        # Stash parquet-derived outcomes so we can apply yn after the fetch
+        # fallback fills in any missing ones.
+        rec["_outcomes"] = parquet_outcomes.get(rid, "")
         records.append(rec)
 
     print(f"Skipped {skipped_no_price} markets with degenerate prices "
@@ -353,23 +402,54 @@ def main():
             slug_map[rec["id"]] = slug
 
     WEB.mkdir(parents=True, exist_ok=True)
-    with OUT_MARKETS.open("w") as f:
-        json.dump(records, f, separators=(",", ":"))
     with OUT_SLUGS.open("w") as f:
         json.dump(slug_map, f, separators=(",", ":"))
 
     # --- descriptions sidecar ---
     # If 07 wrote `description` into the parquet, use that. Otherwise fetch
     # via gamma single-market API (cached at data/active_descriptions.jsonl).
+    # Outcomes are tracked in parallel - parquet first, then any gaps filled
+    # by the same fetch pass that pulls descriptions.
+    outcomes_map = dict(parquet_outcomes)
     if "description" in df.columns:
         desc_map_raw = dict(zip(df["id"].astype(str), df["description"].fillna("")))
-        # Downgrade to the same dict shape the fetch path returns (drop blanks).
         desc_map = {k: v for k, v in desc_map_raw.items() if isinstance(v, str) and v.strip()}
         print(f"Descriptions from parquet: {len(desc_map)}", file=sys.stderr)
+
+        # Fetch outcomes for any ids the parquet didn't cover. Cheap because
+        # the description cache likely already has them - older cache rows
+        # without outcomes get re-fetched.
+        ids_missing_outcomes = [r["id"] for r in records if r["id"] not in outcomes_map]
+        if ids_missing_outcomes:
+            print(f"Filling outcomes for {len(ids_missing_outcomes)} ids from gamma...",
+                  file=sys.stderr)
+            _, fetched_outcomes = fetch_missing_descriptions(ids_missing_outcomes)
+            for rid, val in fetched_outcomes.items():
+                outcomes_map.setdefault(rid, val)
     else:
         print("No description column in parquet, fetching from gamma...", file=sys.stderr)
         ids_in_use = [r["id"] for r in records]
-        desc_map = fetch_missing_descriptions(ids_in_use)
+        desc_map, fetched_outcomes = fetch_missing_descriptions(ids_in_use)
+        for rid, val in fetched_outcomes.items():
+            outcomes_map.setdefault(rid, val)
+
+    # Apply yn label + "Who will win" rewrite. Mirrors 03_export_for_web.py
+    # so resolved and active modes show identical disambiguation behavior.
+    yn_count = 0
+    for rec in records:
+        oc = outcomes_map.get(rec["id"]) or rec.get("_outcomes", "")
+        rec.pop("_outcomes", None)
+        yn = yes_label(oc)
+        if yn:
+            rec["yn"] = yn
+            rec["q"] = disambiguate_question(rec["q"], yn)
+            yn_count += 1
+    print(f"Applied yn label to {yn_count}/{len(records)} markets", file=sys.stderr)
+
+    # Write markets.json AFTER yn application so the published bundle carries
+    # the yn field and the disambiguated question text.
+    with OUT_MARKETS.open("w") as f:
+        json.dump(records, f, separators=(",", ":"))
 
     desc_out = {r["id"]: desc_map[r["id"]] for r in records if r["id"] in desc_map}
     with OUT_DESCS.open("w") as f:
