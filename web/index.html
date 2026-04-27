@@ -22,7 +22,7 @@
 <meta name="twitter:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png">
 
-<link rel="stylesheet" href="style.css?v=40">
+<link rel="stylesheet" href="style.css?v=41">
 <link rel="preload" href="data/markets-hot.json?v=18" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/taxonomy.json?v=18" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/descriptions-hot.json?v=18" as="fetch" type="application/json" crossorigin>
@@ -268,6 +268,15 @@
       </div>
     </div>
 
+    <div class="sort-block">
+      <div class="filter-label">order</div>
+      <div class="sort-row mode-toggle" role="radiogroup" aria-label="question order">
+        <button id="btn-sort-random" class="mode-tab current" data-sort="random" role="radio" aria-checked="true" title="Weighted-random with a soft penalty so you don't see the same event back-to-back">Random</button>
+        <button id="btn-sort-end-asc" class="mode-tab" data-sort="end-asc" role="radio" aria-checked="false">Closing soonest</button>
+        <button id="btn-sort-end-desc" class="mode-tab" data-sort="end-desc" role="radio" aria-checked="false">Closing latest</button>
+      </div>
+    </div>
+
     <div class="modal-foot">
       <span id="deck-pool-info" class="muted small"></span>
       <button id="btn-deck-done" class="primary">Done</button>
@@ -283,6 +292,6 @@
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">by ac <span class="arrow">↗</span></a>
 </footer>
 
-<script src="app.js?v=42" defer></script>
+<script src="app.js?v=43" defer></script>
 </body>
 </html>

@@ -141,6 +141,13 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // Stats scope: which slice of history the Stats view shows. Session-only
   // (resets on reload) - stats are a glanceable snapshot, no need to persist.
   let statsScope = "all";   // "all" | "resolved" | "active"
+  // Per-session ledger of markets actually shown (predict + skip). Drives:
+  //   - Ordered modes (end-asc/desc) need this to advance past skipped items.
+  //   - Random mode multiplies an event's pick weight by 0.2^k where k = how
+  //     many times its event has been shown this session, so tight decks
+  //     dominated by one event-with-N-slices feel varied without hiding.
+  const shownIds = new Set();
+  const eventShowCounts = new Map();
   let chartJsPromise = null;
   function loadChartJs() {
     if (typeof Chart !== "undefined") return Promise.resolve(true);
@@ -181,20 +188,23 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       ? { mode: "custom", subs: null }   // active has no hot pack; null subs = "All"
       : { mode: "hot",    subs: null };  // resolved first-visit = curated edition picks
   }
+  const VALID_SORTS = ["random", "end-asc", "end-desc"];
   function loadPrefs() {
     try {
       const p = JSON.parse(localStorage.getItem(LS_PREFS) || "{}");
       const vi = p.volIdx ?? 4;
       const dm = p.dataMode === "active" ? "active" : "resolved";
       const decks = (p._decks && typeof p._decks === "object") ? p._decks : {};
+      const sort = VALID_SORTS.includes(p.sort) ? p.sort : "random";
       return {
         mode: p.mode || "hot",       // "hot" = curated allowlist, "custom" = subs-based
         subs: p.subs || null,
         volIdx: Math.max(0, Math.min(VOL_STEPS.length - 1, vi)),
         dataMode: dm,                // "resolved" | "active"
+        sort,                        // "random" | "end-asc" | "end-desc"
         _decks: decks,               // { resolved?: {mode, subs}, active?: {mode, subs} }
       };
-    } catch { return { mode: "hot", subs: null, volIdx: 4, dataMode: "resolved", _decks: {} }; }
+    } catch { return { mode: "hot", subs: null, volIdx: 4, dataMode: "resolved", sort: "random", _decks: {} }; }
   }
   function savePrefs() { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); }
 
@@ -337,10 +347,40 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     }
     prefs.dataMode = mode;
     savePrefs();
+    // Different mode = different deck universe; reset session-shown ledgers
+    // so the soft event penalty and ordered-mode advancement start fresh.
+    shownIds.clear();
+    eventShowCounts.clear();
     if (!silent) {
       renderModeToggle();
       renderDeckStrip();
     }
+  }
+
+  // Sort row: label semantics flip with dataMode. In resolved mode "end" =
+  // resolution date, so end-asc = oldest first, end-desc = newest first.
+  // In active mode "end" = close date, so end-asc = closing soonest,
+  // end-desc = closing latest. The button always submits the same `data-sort`
+  // value; only the visible text changes.
+  function renderSortRow() {
+    const asc = $("btn-sort-end-asc");
+    const desc = $("btn-sort-end-desc");
+    if (asc && desc) {
+      if (prefs.dataMode === "active") {
+        asc.textContent = "Closing soonest";
+        desc.textContent = "Closing latest";
+      } else {
+        asc.textContent = "Oldest first";
+        desc.textContent = "Newest first";
+      }
+    }
+    ["random", "end-asc", "end-desc"].forEach((s) => {
+      const btn = document.querySelector(`.sort-row [data-sort="${s}"]`);
+      if (!btn) return;
+      const cur = prefs.sort === s;
+      btn.classList.toggle("current", cur);
+      btn.setAttribute("aria-checked", cur ? "true" : "false");
+    });
   }
 
   function renderModeToggle() {
@@ -547,14 +587,38 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   function pickQuestion() {
     const pool = filteredPool();
     if (!pool.length) return null;
+
+    // Ordered modes: skip markets already shown this session, then pick the
+    // earliest/latest end date. When the session set covers the whole pool,
+    // the deck is exhausted (showEmptyDeck handles that upstream).
+    if (prefs.sort === "end-asc" || prefs.sort === "end-desc") {
+      const remaining = pool.filter((m) => !shownIds.has(m.id) && m.end);
+      if (!remaining.length) {
+        // All matching markets either lack end dates or were shown - fall
+        // back to anything not shown so we don't dead-end on no-end-date data.
+        const anyRemaining = pool.filter((m) => !shownIds.has(m.id));
+        if (!anyRemaining.length) return null;
+        return anyRemaining[0];
+      }
+      remaining.sort((a, b) => {
+        const da = new Date(a.end).getTime();
+        const db = new Date(b.end).getTime();
+        return prefs.sort === "end-asc" ? da - db : db - da;
+      });
+      return remaining[0];
+    }
+
+    // Random (default): weighted by uncertainty, with a soft penalty for
+    // events already shown this session. 0.2^k means once you've seen one
+    // slice of "Who wins 2028 Dem nom?", the other 29 candidates aren't
+    // hidden but they're 5x rarer; after two slices, 25x rarer. Slices are
+    // still reachable on tight decks where they're all you've got.
     let total = 0;
     const weights = pool.map((m) => {
-      // In active mode the comparable signal is the current price (p_now).
-      // In resolved mode it's the 7-day-pre-close price (p7). Same idea:
-      // weight uncertain markets higher, since 50/50 markets are more
-      // calibration-rich than 95/5 ones.
       const ref = (prefs.dataMode === "active") ? m.p_now : m.p7;
-      const w = (ref != null) ? Math.max(0.1, 1 - 2 * Math.abs(ref - 0.5)) : 0.5;
+      const baseW = (ref != null) ? Math.max(0.1, 1 - 2 * Math.abs(ref - 0.5)) : 0.5;
+      const k = m.ev ? (eventShowCounts.get(m.ev) || 0) : 0;
+      const w = baseW * Math.pow(0.2, k);
       total += w;
       return w;
     });
@@ -651,6 +715,8 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // ------- play view rendering -------
   function showQuestion(m) {
     current = m;
+    shownIds.add(m.id);
+    if (m.ev) eventShowCounts.set(m.ev, (eventShowCounts.get(m.ev) || 0) + 1);
     $("m-cat").textContent  = m.c || "";
     $("m-sub").textContent  = m.s || "";
     const dateEl = $("m-date");
@@ -1108,6 +1174,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   function openDeckModal() {
     renderPresets();
     renderDeckGrid();
+    renderSortRow();
     updateDeckPoolInfo();
     $("deck-modal").classList.remove("hidden");
     document.body.style.overflow = "hidden";
@@ -1687,6 +1754,21 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       prefs.volIdx = +e.target.value;
       savePrefs();
       updateDeckPoolInfo();
+    });
+
+    // sort row in modal - changing order resets session-shown so ordered
+    // mode advances from the top of the new sort instead of mid-list.
+    renderSortRow();
+    document.querySelectorAll(".sort-row [data-sort]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = btn.dataset.sort;
+        if (!VALID_SORTS.includes(next) || prefs.sort === next) return;
+        prefs.sort = next;
+        savePrefs();
+        shownIds.clear();
+        eventShowCounts.clear();
+        renderSortRow();
+      });
     });
 
     // welcome card dismiss (X and "Got it" both close it)

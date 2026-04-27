@@ -894,6 +894,9 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
 }
 
 .vol-block { margin: 1rem 0 1.5rem; }
+.sort-block { margin: 0 0 1.25rem; }
+.sort-row { width: 100%; }
+.sort-row .mode-tab { flex: 1; text-align: center; }
 .filter-label {
   display: block; font-size: 0.8125rem; color: var(--muted);
   margin-bottom: 0.5rem;
