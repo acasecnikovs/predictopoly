@@ -1878,23 +1878,52 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     el.innerHTML = `<b>${n} scored predictions.</b> Biggest pattern: <b>${overOrUnder}</b> in the ${bandLabels[worst.bucket]} band - your calls there averaged ${predPct}% but actually happened ${actualPct}% of the time (n=${worst.n}).${conf}`;
   }
 
-  // ------- biggest misses -------
-  // Top 5 highest-Brier predictions. Concrete bad calls are more useful
-  // for calibration learning than aggregate Brier - you remember the
-  // question, you remember why you got it wrong. Reuses the archive row
-  // component so the visual pattern is consistent with History.
+  // ------- where the market knew better -------
+  // Surfaces predictions where the user was further from the truth than
+  // the market consensus by a meaningful margin (>=30pp). Filters out
+  // tail-event coinflips where both the user and the market got blindsided
+  // by the same low-probability outcome - those teach nothing. What's
+  // left: actual calibration errors where the crowd priced in something
+  // the user missed, which is exactly what's worth re-reading.
+  //
+  // Sorted by `youErr - marketErr` descending, so the entry where the
+  // gap was largest goes first. Capped at 5. Section hidden entirely if
+  // < 10 scored predictions with market data (small-sample gate) or if
+  // nothing clears the 30pp threshold (well-calibrated user vs market).
+  const MARKET_GAP_THRESHOLD = 0.3;
+  const MARKET_GAP_MIN_N = 10;
+
   function renderBiggestMisses(hist) {
     const section = $("biggest-misses-section");
     const list = $("biggest-misses");
     if (!section || !list) return;
-    if (hist.length < 5) {
+
+    const withMkt = hist.filter((r) => {
+      const mp = r.mkt30 ?? r.mkt7 ?? r.mkt1;
+      return typeof mp === "number" && Number.isFinite(mp);
+    });
+    if (withMkt.length < MARKET_GAP_MIN_N) {
       section.classList.add("hidden");
       list.innerHTML = "";
       return;
     }
+
+    const annotated = withMkt.map((r) => {
+      const mp = r.mkt30 ?? r.mkt7 ?? r.mkt1;
+      const youErr = Math.abs(r.p - r.o);
+      const mktErr = Math.abs(mp - r.o);
+      return { rec: r, gap: youErr - mktErr };
+    }).filter((x) => x.gap >= MARKET_GAP_THRESHOLD);
+
+    if (annotated.length === 0) {
+      section.classList.add("hidden");
+      list.innerHTML = "";
+      return;
+    }
+
+    annotated.sort((a, b) => b.gap - a.gap);
     section.classList.remove("hidden");
-    const sorted = [...hist].sort((a, b) => b.brier - a.brier).slice(0, 5);
-    list.innerHTML = sorted.map(archiveRowHtml).join("");
+    list.innerHTML = annotated.slice(0, 5).map((x) => archiveRowHtml(x.rec)).join("");
   }
 
   // ------- archive (recent predictions list) -------
