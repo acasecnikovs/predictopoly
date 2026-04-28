@@ -16,6 +16,24 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // resolution-checker upgrades entries to scored history records once the
   // market closes. Until then they're "pending" and carry no points.
   const LS_PENDING = "predictopoly.pending.v1";
+  // Anonymous device id, generated once and stashed in localStorage. Sent
+  // with every prediction so we can answer "is the same device coming back"
+  // and "how many predictions per user" server-side. No PII, never leaves
+  // the device until attached to an outgoing prediction, clearable via the
+  // browser's site-data settings or our own "Reset everything" button.
+  const LS_SID     = "predictopoly.sid.v1";
+  function getSessionId() {
+    let sid = localStorage.getItem(LS_SID);
+    if (!sid) {
+      // crypto.randomUUID is supported everywhere we ship to; fall back to
+      // a manually-rolled hex if the environment is hostile (very old WebViews).
+      sid = (window.crypto && typeof crypto.randomUUID === "function")
+        ? crypto.randomUUID()
+        : Array.from({ length: 4 }, () => Math.random().toString(16).slice(2, 10)).join("-");
+      localStorage.setItem(LS_SID, sid);
+    }
+    return sid;
+  }
 
   const VOL_STEPS  = [0, 100, 1000, 10000, 100000, 1000000];
 
@@ -525,13 +543,32 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
 
   // ------- view switching -------
-  function showView(name) {
-    ["play", "open", "history", "stats"].forEach((v) => {
+  // Hash routing: each top-level view owns a #fragment so browser back/forward
+  // works, deep links work (predictopoly.com/#stats), and Cloudflare Web
+  // Analytics records each view as a distinct pageview (useful for funnel:
+  // visit -> first prediction -> Stats). The welcome overlay and the deck
+  // modal are intentionally NOT routes - they're transient UI, not destinations.
+  const VIEW_NAMES = ["play", "open", "history", "stats"];
+  function parseHash() {
+    const h = (window.location.hash || "").replace(/^#/, "");
+    return VIEW_NAMES.includes(h) ? h : null;
+  }
+  function showView(name, { fromHistory = false } = {}) {
+    if (!VIEW_NAMES.includes(name)) name = "play";
+    VIEW_NAMES.forEach((v) => {
       const el = $("view-" + v);
       if (el) el.classList.toggle("hidden", v !== name);
     });
     $$(".navlink").forEach((b) => b.classList.toggle("current", b.dataset.view === name));
     currentView = name;
+    // Sync URL only on user-initiated transitions; popstate-driven calls
+    // already reflect the bar, calling pushState here would double up.
+    if (!fromHistory) {
+      const wantHash = `#${name}`;
+      if (window.location.hash !== wantHash) {
+        history.pushState({ view: name }, "", wantHash);
+      }
+    }
     if (name === "stats") {
       loadChartJs(); // start fetching the chart lib in parallel with data
       renderStats();
@@ -906,7 +943,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     saveHistory();
     renderReveal(rec, current, score, mp);
     renderSession();
-    fetchPercentile(current.id, score.yourBrier);
+    fetchPercentile(current.id, p, score.yourBrier);
   }
 
   function submitActive(p) {
@@ -937,6 +974,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     savePending();
     renderNavCount();
     renderRevealActive(rec, m);
+    logActivePrediction(m.id, p);
   }
 
   function renderRevealActive(rec, m) {
@@ -1306,12 +1344,21 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
 
   // ------- percentile (backend) -------
-  async function fetchPercentile(qid, brier) {
+  // Resolved-mode submit: send {qid, p, brier, mode:"resolved", session_id},
+  // get back {percentile, n}. The server logs the row for population stats
+  // and ranks the user's brier against everyone else's on this question.
+  async function fetchPercentile(qid, p, brier) {
     try {
       const res = await fetch("/api/percentile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qid, brier }),
+        body: JSON.stringify({
+          qid,
+          p,
+          brier,
+          mode: "resolved",
+          session_id: getSessionId(),
+        }),
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -1329,6 +1376,24 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       $("r-percentile-val").classList.remove("loading-pulse");
       $("r-percentile").classList.add("hidden");
     }
+  }
+
+  // Active-mode submit: same endpoint but no brier (the question hasn't
+  // resolved yet). Pure logging - we don't care about the response, just
+  // that the row lands so we can compute population calibration / mode
+  // splits / per-session engagement later.
+  function logActivePrediction(qid, p) {
+    fetch("/api/percentile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        qid,
+        p,
+        mode: "active",
+        session_id: getSessionId(),
+      }),
+      keepalive: true,
+    }).catch(() => {});
   }
 
   // ------- next / skip -------
@@ -1991,6 +2056,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       localStorage.removeItem(LS_PENDING);
       localStorage.removeItem(LS_PREFS);
       localStorage.removeItem(LS_ONBOARD);
+      localStorage.removeItem(LS_SID);
       sessionStorage.clear();
     } catch { /* ignore - private mode etc., reload still helps */ }
     location.reload();
@@ -2183,6 +2249,19 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("session-pill").addEventListener("click", () => showView("stats"));
     $("session-pill").style.cursor = "pointer";
 
+    // Browser back/forward and direct hash edits both fire popstate or
+    // hashchange. We treat either as a "go to view" event - the URL is the
+    // source of truth, not our internal state. fromHistory:true skips the
+    // pushState round-trip that would otherwise create a duplicate entry.
+    window.addEventListener("popstate", () => {
+      const name = parseHash() || "play";
+      if (name !== currentView) showView(name, { fromHistory: true });
+    });
+    window.addEventListener("hashchange", () => {
+      const name = parseHash() || "play";
+      if (name !== currentView) showView(name, { fromHistory: true });
+    });
+
     // deck modal
     $("btn-open-deck").addEventListener("click", openDeckModal);
     $("btn-deck-close").addEventListener("click", closeDeckModal);
@@ -2295,6 +2374,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       else if (e.key === "Enter" && revealOpen) { e.preventDefault(); nextQuestion(); }
       else if (e.key.toLowerCase() === "s" && !revealOpen) { skipQuestion(); }
     });
+
+    // Honor a deep-link hash on cold load. Default (#play or no hash) is a
+    // no-op since play is the visible view by default. Anything else - the
+    // user pasted /#stats, came back to a tab parked on /#open, etc. -
+    // routes there now that data and listeners are ready. fromHistory:true
+    // skips the pushState since the URL already reflects this state.
+    const initialView = parseHash();
+    if (initialView && initialView !== "play") {
+      showView(initialView, { fromHistory: true });
+    }
 
     // first question - background fetches were kicked at the very top of init
     nextQuestion();
