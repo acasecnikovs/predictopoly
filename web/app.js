@@ -559,6 +559,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       const el = $("view-" + v);
       if (el) el.classList.toggle("hidden", v !== name);
     });
+    // Deck-strip is a sibling of the view sections, not a child of view-play.
+    // It's only meaningful while predicting, so hide it on Open/History/Stats.
+    const deckStrip = $("deck-strip");
+    if (deckStrip) deckStrip.classList.toggle("hidden", name !== "play");
     $$(".navlink").forEach((b) => b.classList.toggle("current", b.dataset.view === name));
     currentView = name;
     // Sync URL only on user-initiated transitions; popstate-driven calls
