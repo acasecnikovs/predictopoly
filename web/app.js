@@ -1294,7 +1294,13 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
           const r = resolutions[rec.id];
           if (!r || !r.resolved) continue;
 
-          const o = r.outcome === 1 ? 1 : 0;
+          // r.o is the YES indicator: 1 if YES happened, 0 if NO. Old
+          // contract was r.outcome (winning index, 0 or 1) and assumed
+          // index 0 = NO, which was inverted - see check-resolution.js.
+          // During the brief window where edge cache might still hold an
+          // old-shape response (s-maxage=60), r.o is undefined and we skip.
+          if (r.o !== 0 && r.o !== 1) continue;
+          const o = r.o;
           const mktP = (typeof rec.p_at_submit === "number") ? rec.p_at_submit : null;
           const score = pointsFor(rec.p, o, mktP);
 
@@ -1324,6 +1330,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
             // Keep the "you predicted at" timestamp so calibration over
             // time still attributes to when the user actually thought.
             t_predicted: rec.t || null,
+            // Marker that this record was resolved with the corrected
+            // YES-index mapping. Older entries lack this and get repaired
+            // by the boot migration in repairFlippedActiveHistory().
+            resolution_v: 2,
           };
           history.push(hist);
           resolvedIds.add(rec.id);
@@ -1349,6 +1359,60 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     }
 
     return { checked: due.length, resolved: resolvedIds.size };
+  }
+
+  // One-shot repair: re-resolve any active-mode history entries scored with
+  // the inverted YES-index mapping (resolution_v missing or < 2). Hits the
+  // same /api/check-resolution endpoint - now fixed - and rewrites o, brier,
+  // log, pts, ptsCal, ptsMkt in place. Setting resolution_v=2 prevents
+  // re-running on subsequent boots. Silent on failure: the entry stays
+  // wrong but we'll retry next session. We don't show the resolved banner -
+  // this is a quiet correction, not a new resolution.
+  async function repairFlippedActiveHistory() {
+    const broken = history.filter(
+      (h) => h && h.origin === "active" && (h.resolution_v == null || h.resolution_v < 2),
+    );
+    if (!broken.length) return;
+
+    const ids = broken.map((h) => h.id).filter((x) => typeof x === "string" && x.length);
+    if (!ids.length) return;
+
+    let data;
+    try {
+      const res = await fetch("/api/check-resolution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: ids.slice(0, 50) }),
+      });
+      if (!res.ok) return;
+      data = await res.json();
+    } catch {
+      return;
+    }
+
+    const resolutions = (data && data.resolutions) || {};
+    let changed = 0;
+    for (const h of broken) {
+      const r = resolutions[h.id];
+      if (!r || !r.resolved) continue;
+      if (r.o !== 0 && r.o !== 1) continue;
+      const mktP = (typeof h.mkt1 === "number") ? h.mkt1 : null;
+      const score = pointsFor(h.p, r.o, mktP);
+      h.o = r.o;
+      h.brier = score.yourBrier;
+      h.log = logScore(h.p, r.o);
+      h.pts = score.total;
+      h.ptsCal = score.calibration;
+      h.ptsMkt = score.marketBeat;
+      h.resolution_v = 2;
+      changed++;
+    }
+    if (changed > 0) {
+      saveHistory();
+      renderSession();
+      if (currentView === "history") renderArchive(history);
+      else if (currentView === "stats") renderStats();
+    }
   }
 
   // ------- percentile (backend) -------
@@ -2129,6 +2193,12 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (pending.length) {
       checkPendingResolutions().catch(() => {});
     }
+
+    // One-shot migration: any active-mode history entry with no
+    // resolution_v marker was scored with the inverted YES/NO mapping.
+    // Re-fetch the resolution and rewrite the record. See git blame on
+    // check-resolution.js for the original miss.
+    repairFlippedActiveHistory().catch(() => {});
 
     // slider
     const slider = $("p-slider");

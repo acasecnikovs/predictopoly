@@ -2,9 +2,17 @@
 // Body: { ids: string[] }   (max 50 per call)
 // Returns: { resolutions: { [id]: ResolutionStatus } }
 //   ResolutionStatus =
-//     { resolved: true, outcome: 0 | 1, outcomePrices: [number, number] }
+//     { resolved: true, o: 0 | 1, outcomePrices: [number, number], outcomes: [string, string] }
 //     | { resolved: false }
 //     | { error: string }
+//
+// `o` is "did YES happen" - 1 if the YES side (Polymarket convention:
+// outcomes[0] = "Yes") resolved at >=0.99, 0 if NO did. Critical: we don't
+// blindly assume index 0 = YES. We read the outcomes array, find which
+// index is "Yes" (case-insensitive), and use that. Was previously inverted
+// (assumed index 1 = YES), which scored every active-mode resolution
+// opposite of reality. Caught after Manchester United beat Burnley 2026-04-27,
+// the user's 84% YES was scored as if NO had happened. See git blame.
 //
 // Phase B.3 of the active-mode loop. The browser holds a pending entry per
 // active prediction the user made; once that market's endDate has passed,
@@ -64,6 +72,31 @@ function parseOutcomePrices(raw) {
   return [a, b];
 }
 
+function parseOutcomes(raw) {
+  if (!raw) return null;
+  let arr;
+  try {
+    arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(arr) || arr.length !== 2) return null;
+  if (typeof arr[0] !== "string" || typeof arr[1] !== "string") return null;
+  return [arr[0], arr[1]];
+}
+
+function findYesIndex(outcomes) {
+  // Polymarket binary markets are conventionally ["Yes", "No"] but we don't
+  // hardcode the position - check the labels and return whichever index is
+  // "Yes" (case-insensitive). If neither is, this isn't a yes/no market and
+  // we bail (caller leaves it pending).
+  if (!outcomes) return -1;
+  for (let i = 0; i < outcomes.length; i++) {
+    if (typeof outcomes[i] === "string" && outcomes[i].trim().toLowerCase() === "yes") return i;
+  }
+  return -1;
+}
+
 function judgeResolution(market) {
   // Only call a market resolved when polymarket has stamped closed=true AND
   // the outcome prices are extreme (>=0.99 on the winning side). Markets
@@ -73,10 +106,17 @@ function judgeResolution(market) {
   // resolves to 50/50 it will sit pending forever - acceptable edge case.
   if (!market || market.closed !== true) return { resolved: false };
   const prices = parseOutcomePrices(market.outcomePrices);
-  if (!prices) return { resolved: false };
-  const [a, b] = prices;
-  if (a >= 0.99) return { resolved: true, outcome: 0, outcomePrices: prices };
-  if (b >= 0.99) return { resolved: true, outcome: 1, outcomePrices: prices };
+  const outcomes = parseOutcomes(market.outcomes);
+  if (!prices || !outcomes) return { resolved: false };
+  const yesIdx = findYesIndex(outcomes);
+  if (yesIdx < 0) return { resolved: false };
+  const noIdx = yesIdx === 0 ? 1 : 0;
+  if (prices[yesIdx] >= 0.99) {
+    return { resolved: true, o: 1, outcomePrices: prices, outcomes };
+  }
+  if (prices[noIdx] >= 0.99) {
+    return { resolved: true, o: 0, outcomePrices: prices, outcomes };
+  }
   return { resolved: false };
 }
 
