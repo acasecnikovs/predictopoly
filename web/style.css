@@ -319,6 +319,46 @@ main {
   color: var(--yes);
   background: var(--yes-soft);
 }
+.welcome-shortcuts {
+  margin: 1.75rem auto 0;
+  max-width: 36rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line-soft);
+  text-align: left;
+}
+.welcome-shortcuts-title {
+  font-size: 0.7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.55rem;
+}
+.welcome-shortcuts-list {
+  list-style: none; padding: 0; margin: 0;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1.5rem;
+  font-size: 0.875rem; color: var(--text);
+}
+.welcome-shortcuts-list li { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+.welcome-shortcuts-list kbd {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--text);
+  line-height: 1;
+}
+.welcome-dismiss-hint {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-style: italic;
+}
+@media (max-width: 600px) {
+  .welcome-shortcuts-list { grid-template-columns: 1fr; }
+}
 .welcome-close {
   position: absolute;
   top: 0.625rem; right: 0.75rem;
@@ -947,11 +987,22 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
 .deck-card.on .deck-played { color: var(--accent); opacity: 0.75; }
 .deck-exp {
   flex-shrink: 0;
-  font-size: 0.875rem; color: var(--muted);
-  padding: 0.1rem 0.4rem; border-radius: 4px;
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-size: 0.75rem; color: var(--muted);
+  padding: 0.2rem 0.5rem 0.2rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
   line-height: 1;
+  transition: border-color 0.1s ease, background 0.1s ease, color 0.1s ease;
 }
-.deck-exp:hover { color: var(--accent); background: var(--accent-soft); }
+.deck-exp:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.deck-exp-label { font-weight: 500; }
+.deck-exp-caret {
+  display: inline-block; font-size: 0.75rem; line-height: 1;
+  transition: transform 0.12s ease;
+}
+.deck-exp.open .deck-exp-caret { transform: rotate(-180deg); }
 
 .deck-subs {
   display: flex; flex-wrap: wrap; gap: 0.35rem;

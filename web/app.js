@@ -1656,7 +1656,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       }
 
       const onlySub = subs.length <= 1;
-      const expBtn = onlySub ? "" : `<button class="deck-exp" title="${expanded ? "collapse" : "subcategories"}">${expanded ? "▾" : "▸"}</button>`;
+      // The previous standalone ▸ chevron was small enough to read as a
+      // dot. Pair it with an explicit "subs" label and rotate the glyph on
+      // expand so the affordance is unmissable.
+      const expBtn = onlySub ? "" : `<button class="deck-exp${expanded ? " open" : ""}" type="button" title="${expanded ? "collapse subcategories" : "show subcategories"}" aria-expanded="${expanded}"><span class="deck-exp-label">subs</span><span class="deck-exp-caret" aria-hidden="true">▾</span></button>`;
 
       card.innerHTML = `
         <div class="deck-head">
@@ -2203,6 +2206,22 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     // slider
     const slider = $("p-slider");
     slider.addEventListener("input", (e) => setBubble(+e.target.value));
+    // Shift+Arrow snaps to the extremum (matches OS conventions for "jump
+    // to end"). Plain arrows keep stepping by 1% via the native input behavior.
+    slider.addEventListener("keydown", (e) => {
+      if (!e.shiftKey) return;
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown" || e.key === "Home") {
+        e.preventDefault();
+        slider.value = String(slider.min || 0);
+        setBubble(+slider.value);
+        slider.dispatchEvent(new Event("input", { bubbles: true }));
+      } else if (e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "End") {
+        e.preventDefault();
+        slider.value = String(slider.max || 100);
+        setBubble(+slider.value);
+        slider.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
 
     // predict actions
     $("btn-submit").addEventListener("click", submit);
@@ -2370,15 +2389,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       });
     });
 
-    // welcome card dismiss - the X is the sole explicit close affordance.
-    // Backdrop click and Esc also dismiss (they're standard modal patterns
-    // and the user expects them once the card floats above the page).
-    $("btn-onboarding-dismiss").addEventListener("click", dismissOnboarding);
+    // Welcome card: any click anywhere on the overlay or the card itself
+    // dismisses (the explainer is read-only - there's nothing inside to
+    // interact with). The X stays for users who scan for an explicit close.
+    $("btn-onboarding-dismiss").addEventListener("click", (e) => {
+      e.stopPropagation();
+      dismissOnboarding();
+    });
     const welcomeOverlay = $("welcome-overlay");
     if (welcomeOverlay) {
-      welcomeOverlay.addEventListener("click", (e) => {
-        if (e.target === welcomeOverlay) dismissOnboarding();
-      });
+      welcomeOverlay.addEventListener("click", () => dismissOnboarding());
     }
     // Topbar "?" glyph toggles the welcome card. The single canonical entry
     // point now that the footer "show intro" link has been removed - one
@@ -2420,11 +2440,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       // through the deck without the user ever reading anything. We want
       // strictly one keypress -> one action.
       if (e.repeat) return;
-      // Welcome overlay catches Esc / Enter first - so first-paint users can
-      // dismiss the explainer with the keyboard before play-screen shortcuts
-      // activate. Both keys close it (Enter is "got it, let me predict").
+      // Welcome overlay catches every keypress - any key dismisses, since
+      // the card is read-only and the user shouldn't have to hunt for the
+      // right key. Modifier-only keypresses (Shift, Ctrl, Alt, Meta on
+      // their own) are ignored so the user can chord without losing the card.
       if (isOnboardingOpen()) {
-        if (e.key === "Escape" || e.key === "Enter") {
+        const modifierOnly = e.key === "Shift" || e.key === "Control"
+          || e.key === "Alt" || e.key === "Meta";
+        if (!modifierOnly) {
           e.preventDefault();
           dismissOnboarding();
         }
