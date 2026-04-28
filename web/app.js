@@ -345,6 +345,15 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (prefs.mode === "custom" && prefs.subs && taxonomy) {
       prefs.subs = sanitizeSubs(prefs.subs, taxonomy);
     }
+    // First active-mode visit lands here with subs:null (deckDefaults). The
+    // filteredPool fallback treats that as "show all", but the deck modal's
+    // preset matcher and category grid both read it as "nothing selected" -
+    // so the modal opens with Clear highlighted and every category off, even
+    // though the deck is showing every market. Bootstrap subs to fully-on
+    // here so what the user sees in the modal matches what they're playing.
+    if (prefs.mode === "custom" && !prefs.subs && taxonomy && Object.keys(taxonomy).length) {
+      prefs.subs = pickCats(taxonomy, Object.keys(taxonomy));
+    }
     prefs.dataMode = mode;
     savePrefs();
     // Different mode = different deck universe; reset session-shown ledgers
