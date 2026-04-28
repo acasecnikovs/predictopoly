@@ -1,4 +1,4 @@
-// predictopoly - calibration training on resolved Polymarket questions
+// predictopoly - calibration training on Polymarket questions, past and live
 // vanilla JS, no build step, localStorage for state
 
 window.__ppMarker = "loaded";

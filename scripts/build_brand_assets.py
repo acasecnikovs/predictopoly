@@ -83,7 +83,7 @@ def make_og_image():
 
     # ---- tagline ----
     tag_font = font(40, weight=0)
-    tag = "calibration training on resolved Polymarket questions"
+    tag = "calibration training on Polymarket - past and live"
     tag_bbox = draw.textbbox((0, 0), tag, font=tag_font)
     tag_w = tag_bbox[2] - tag_bbox[0]
     draw.text(((W - tag_w) // 2, 350), tag, font=tag_font, fill=MUTED)

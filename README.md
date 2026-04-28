@@ -1,10 +1,16 @@
 # Predictopoly
 
-A calibration training tool built on 37,499 resolved Polymarket questions.
+A calibration training tool for Polymarket questions - past and live.
 
-Pick a category, see a market, predict the probability, reveal the outcome,
-get scored. Over time you build a reliability diagram per category - see
+Pick a category, see a market, predict the probability, get scored.
+On past markets you reveal the outcome immediately. On live markets your
+prediction sits in an Open tray and resolves automatically when the market
+settles. Over time you build a reliability diagram per category - see
 where your forecasting is sharp and where your brain makes things up.
+
+Past markets come from a dataset of 37,499 resolved Polymarket questions
+(scraped 2026-04-24). Live markets are pulled from Polymarket's API and
+refreshed on demand.
 
 **Scoring**: [Brier score](https://en.wikipedia.org/wiki/Brier_score) (squared
 error between your probability and the 0/1 outcome) and log score.
