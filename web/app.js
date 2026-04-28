@@ -567,10 +567,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     currentView = name;
     // Sync URL only on user-initiated transitions; popstate-driven calls
     // already reflect the bar, calling pushState here would double up.
+    // NB: must be window.history, not bare `history` - the IIFE has a local
+    // `let history = loadHistory()` (user's prediction array) that shadows
+    // window.history. Plain `history.pushState` throws and showView aborts
+    // before the renderArchive/renderOpenTray/renderStats branches below.
     if (!fromHistory) {
       const wantHash = `#${name}`;
       if (window.location.hash !== wantHash) {
-        history.pushState({ view: name }, "", wantHash);
+        window.history.pushState({ view: name }, "", wantHash);
       }
     }
     if (name === "stats") {
