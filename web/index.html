@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>predictopoly</title>
-<meta name="description" content="Calibration training on resolved Polymarket questions.">
+<title>predictopoly - calibration training on Polymarket questions</title>
+<meta name="description" content="Free calibration training on 37,000+ real Polymarket questions. Set the probability of YES on past or live markets and get scored against the outcome and the market. No accounts, runs in your browser.">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -12,17 +12,17 @@
 <!-- Open Graph / Twitter cards: how the site renders when pasted into chats. -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://predictopoly.com/">
-<meta property="og:title" content="predictopoly">
-<meta property="og:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
+<meta property="og:title" content="predictopoly - calibration training on Polymarket questions">
+<meta property="og:description" content="Set the probability of YES on 37,000+ resolved Polymarket questions, or call live markets and get scored when they settle. Free, no accounts, runs in your browser.">
 <meta property="og:image" content="https://predictopoly.com/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="predictopoly">
-<meta name="twitter:description" content="Calibration training on 37,499 resolved Polymarket questions. Predict the probability, see how you did.">
+<meta name="twitter:title" content="predictopoly - calibration training on Polymarket questions">
+<meta name="twitter:description" content="Set the probability of YES on 37,000+ resolved Polymarket questions, or call live markets and get scored when they settle. Free, no accounts, runs in your browser.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png">
 
-<link rel="stylesheet" href="style.css?v=41">
+<link rel="stylesheet" href="style.css?v=54">
 <link rel="preload" href="data/markets-hot.json?v=18" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/taxonomy.json?v=18" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/descriptions-hot.json?v=18" as="fetch" type="application/json" crossorigin>
@@ -36,11 +36,15 @@
   <nav class="topnav">
     <button class="navlink current" data-view="play">Play</button>
     <button class="navlink" data-view="open">Open <span id="nav-open-count" class="nav-count hidden"></span></button>
+    <button class="navlink" data-view="history">History</button>
     <button class="navlink" data-view="stats">Stats</button>
   </nav>
-  <div class="session" id="session-pill" title="Points earned today (resets at midnight)">
-    <span class="session-lbl">today</span>
-    <span class="session-val" id="session-val">0</span>
+  <div class="topbar-end">
+    <div class="session" id="session-pill" title="Lifetime points across all your predictions. Click to see Stats.">
+      <span class="session-lbl">score</span>
+      <span class="session-val" id="session-val">0</span>
+    </div>
+    <button id="btn-help-topbar" class="help-glyph" type="button" aria-label="How predictopoly works" title="How predictopoly works">?</button>
   </div>
 </header>
 
@@ -62,31 +66,29 @@
   </div>
 
   <div class="deck-strip">
-    <div class="mode-toggle" role="tablist" aria-label="market mode">
-      <button id="btn-mode-resolved" class="mode-tab current" data-mode="resolved" role="tab" aria-selected="true" title="Train on Polymarket questions that already resolved">Resolved</button>
-      <button id="btn-mode-active" class="mode-tab" data-mode="active" role="tab" aria-selected="false" title="Predict on currently-open Polymarket questions">Active</button>
-    </div>
-    <span class="deck-prefix">deck:</span>
+    <span id="deck-mode-tag" class="deck-mode-tag" data-mode="resolved" title="Switch in Change deck">Past markets</span>
     <span id="deck-label">edition picks · 84 questions</span>
-    <button id="btn-open-deck" class="deck-change">change <span class="arrow">↗</span></button>
+    <button id="btn-open-deck" class="deck-change" type="button">Change deck</button>
   </div>
 
-  <aside id="welcome-card" class="welcome-card hidden">
-    <button id="btn-onboarding-dismiss" class="welcome-close" title="dismiss">✕</button>
-    <h2 class="welcome-title">Welcome to predictopoly</h2>
-    <p class="welcome-lede">Calibration training on real Polymarket questions. Pick the probability of <b>YES</b>, see how well-calibrated you are.</p>
-    <div class="welcome-modes">
-      <div class="welcome-mode">
-        <div class="welcome-mode-tag resolved">Resolved</div>
-        <p>~37k questions that already settled. Instant feedback - the outcome plus how the market priced it. If you remember the answer from the news, that's a memory check, not calibration. Still useful for the ones you genuinely don't know.</p>
+  <div id="welcome-overlay" class="welcome-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="welcome-lede">
+    <aside id="welcome-card" class="welcome-card">
+      <button id="btn-onboarding-dismiss" class="welcome-close" title="dismiss">✕</button>
+      <img src="favicon.svg" alt="" class="welcome-mark" width="64" height="64">
+      <div class="welcome-brand" aria-hidden="true">predictopoly</div>
+      <p id="welcome-lede" class="welcome-lede">Calibration training on real Polymarket questions. Set the probability of <b>YES</b>, see how sharp you actually are.</p>
+      <div class="welcome-modes">
+        <div class="welcome-mode">
+          <div class="welcome-mode-tag resolved">Past markets</div>
+          <p>~37k resolved questions. Instant feedback against the outcome and the closing price.</p>
+        </div>
+        <div class="welcome-mode">
+          <div class="welcome-mode-tag active">Live markets</div>
+          <p>Currently-open questions. Scored when they resolve.</p>
+        </div>
       </div>
-      <div class="welcome-mode">
-        <div class="welcome-mode-tag active">Active</div>
-        <p>Currently-open markets. See your call next to the live market price instantly, then your prediction goes to the <b>Open</b> tray to be scored when the market resolves. The honest calibration test - you can't peek at the future.</p>
-      </div>
-    </div>
-    <button id="btn-welcome-go" class="primary welcome-go">Got it <span class="arrow">→</span></button>
-  </aside>
+    </aside>
+  </div>
 
   <section id="view-play">
 
@@ -126,7 +128,7 @@
       </div>
 
       <div class="predict-actions">
-        <button id="btn-submit" class="primary">Lock it in <span class="arrow">→</span></button>
+        <button id="btn-submit" class="primary">Submit <span class="arrow">→</span></button>
         <button id="btn-skip" class="text">skip</button>
       </div>
     </div>
@@ -205,17 +207,22 @@
     <p class="muted small open-lede">Predictions you've made on currently-open markets. Each one gets scored automatically when its market resolves and moves into your Stats.</p>
 
     <div id="open-empty" class="open-empty hidden">
-      <h3 class="empty-title">No active predictions are currently open</h3>
-      <p class="empty-body muted">Switch to <b>Active</b> mode on the Play screen and make a prediction - it lands here until the market closes, then gets scored automatically.</p>
-      <button id="btn-open-go-active" class="primary">Go to Active mode <span class="arrow">→</span></button>
-    </div>
-
-    <div id="open-check-row" class="open-check-row hidden">
-      <button id="btn-check-resolutions" class="secondary small" type="button">Check now</button>
-      <span id="open-check-status" class="muted small hidden"></span>
+      <h3 class="empty-title">No live-market predictions are currently open</h3>
+      <p class="empty-body muted">Switch to <b>Live markets</b> on the Play screen and make a prediction - it lands here until the market closes, then gets scored automatically.</p>
+      <button id="btn-open-go-active" class="primary">Go to Live markets <span class="arrow">→</span></button>
     </div>
 
     <div id="open-list" class="open-list"></div>
+  </section>
+
+  <section id="view-history" class="hidden">
+    <h2 class="page-title">History</h2>
+    <p class="muted small archive-lede">Every prediction you've made that has resolved, newest first. Live-market picks that have since landed are tagged so you can spot them.</p>
+    <div id="archive-empty" class="archive-empty muted small hidden">Nothing here yet - predict a few questions to start your track record.</div>
+    <div id="archive-list" class="archive-list"></div>
+    <div class="archive-more-row">
+      <button id="btn-archive-more" class="ghost small hidden" type="button">Show more</button>
+    </div>
   </section>
 
   <section id="view-stats" class="hidden">
@@ -223,8 +230,8 @@
 
     <div class="stats-scope mode-toggle" role="tablist" aria-label="stats scope">
       <button id="btn-stats-all" class="mode-tab current" data-scope="all" role="tab" aria-selected="true" title="Combined stats across both modes">All</button>
-      <button id="btn-stats-resolved" class="mode-tab" data-scope="resolved" role="tab" aria-selected="false" title="Only predictions on Polymarket questions that already resolved">Resolved</button>
-      <button id="btn-stats-active" class="mode-tab" data-scope="active" role="tab" aria-selected="false" title="Only predictions you made on Active markets, scored after they resolve">Active</button>
+      <button id="btn-stats-resolved" class="mode-tab" data-scope="resolved" role="tab" aria-selected="false" title="Only predictions on Polymarket questions that already resolved">Past</button>
+      <button id="btn-stats-active" class="mode-tab" data-scope="active" role="tab" aria-selected="false" title="Only predictions you made on live markets, scored after they resolve">Live</button>
     </div>
     <p id="stats-scope-note" class="muted small stats-scope-note hidden"></p>
 
@@ -243,29 +250,26 @@
       </div>
     </div>
 
-    <details class="for-nerds">
-      <summary>For nerds: Brier, log, market</summary>
-      <div class="stat-grid">
-        <div class="stat"><span class="stat-lbl">avg brier</span><span class="stat-val" id="s-brier">-</span></div>
-        <div class="stat"><span class="stat-lbl">avg log</span><span class="stat-val" id="s-log">-</span></div>
-        <div class="stat"><span class="stat-lbl">vs market</span><span class="stat-val" id="s-vs-mkt">-</span></div>
-      </div>
-    </details>
+    <h3>Detailed scoring</h3>
+    <div class="stat-grid stat-grid-detail">
+      <div class="stat"><span class="stat-lbl has-tip has-tip-wide has-tip-center" data-tip="Brier score: mean squared error between your probabilities and the actual outcomes. 0 is a perfect oracle, 0.25 is the always-say-50% baseline, 1 is maximally wrong. Lower is better.">avg brier</span><span class="stat-val" id="s-brier">-</span></div>
+      <div class="stat"><span class="stat-lbl has-tip has-tip-wide has-tip-center" data-tip="Log loss: penalizes confident mistakes much more harshly than Brier. A 99% YES that turns out NO is catastrophic here. Lower is better; below 0.3 means you're well-calibrated.">avg log</span><span class="stat-val" id="s-log">-</span></div>
+      <div class="stat"><span class="stat-lbl has-tip has-tip-wide has-tip-center" data-tip="Your average Brier vs the market's Brier on the same questions. The number in parentheses is the difference - negative means you're sharper than the market consensus on what you bet on.">vs market</span><span class="stat-val" id="s-vs-mkt">-</span></div>
+    </div>
 
     <h3>Reliability</h3>
-    <p class="muted small">Each dot is a probability bucket (e.g. all your 60-70% calls). Closer to the dashed line = better calibrated.</p>
+    <p class="muted small">Each dot is a probability bucket - hover for what it means. The dashed diagonal is perfect calibration.</p>
+    <p id="pattern-verdict" class="pattern-verdict"></p>
     <div class="chart-wrap"><canvas id="reliability"></canvas></div>
 
     <h3>By category</h3>
     <div id="s-by-cat" class="by-cat"></div>
 
-    <h3 class="archive-heading">Recent predictions</h3>
-    <p class="muted small archive-lede">Every prediction you've made, newest first. Filtered by the scope toggle at the top of this page.</p>
-    <div id="archive-empty" class="archive-empty muted small hidden">Nothing here yet.</div>
-    <div id="archive-list" class="archive-list"></div>
-    <div class="archive-more-row">
-      <button id="btn-archive-more" class="ghost small hidden" type="button">Show more</button>
-    </div>
+    <section id="biggest-misses-section" class="biggest-misses-section hidden">
+      <h3>Worth revisiting</h3>
+      <p class="muted small">Five questions where the outcome was furthest from your call. Looking at concrete cases tends to teach more than averages do - though some of these are just tail outcomes, not calibration errors. A confident call on a real coinflip lands here too.</p>
+      <div id="biggest-misses" class="archive-list"></div>
+    </section>
 
     <div class="reset-row">
       <button id="btn-reset" class="ghost">Reset all predictions</button>
@@ -282,7 +286,14 @@
       <h2>Choose your deck</h2>
       <button id="btn-deck-close" class="modal-close" title="close">✕</button>
     </div>
-    <p class="muted small modal-help">Pick the categories you want and filter by market volume. Changes apply instantly.</p>
+    <div class="modal-mode-block">
+      <div class="filter-label">market mode</div>
+      <div class="mode-toggle" role="tablist" aria-label="market mode">
+        <button id="btn-mode-resolved" class="mode-tab current" data-mode="resolved" role="tab" aria-selected="true">Past markets</button>
+        <button id="btn-mode-active" class="mode-tab" data-mode="active" role="tab" aria-selected="false">Live markets</button>
+      </div>
+      <p class="muted small modal-mode-help" id="modal-mode-help">~37k resolved questions, instant scoring against the outcome and the closing market price.</p>
+    </div>
 
     <div class="presets" id="deck-presets"></div>
 
@@ -314,13 +325,12 @@
 
 <footer>
   <span class="muted small">Inspired by <a href="https://www.quantifiedintuitions.org/" target="_blank" rel="noopener">Quantified Intuitions</a> by <a href="https://sage-future.org/" target="_blank" rel="noopener">Sage</a>.</span>
-  <span class="muted small footer-priv">Your predictions stay in this browser. No accounts, no tracking.</span>
+  <span class="muted small footer-priv">Predictions stay in your browser. No accounts, no tracking.</span>
+  <span class="muted small">Question data from Polymarket's public API. Not affiliated.</span>
   <span class="muted small">Open source on <a href="https://github.com/acasecnikovs/predictopoly" target="_blank" rel="noopener">GitHub</a>.</span>
-  <span class="muted small">Question data from Polymarket's public API. Not affiliated with Polymarket.</span>
-  <button id="btn-show-intro" class="muted small intro-link" title="Re-open the welcome guide">show intro</button>
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">by ac <span class="arrow">↗</span></a>
 </footer>
 
-<script src="app.js?v=43" defer></script>
+<script src="app.js?v=52" defer></script>
 </body>
 </html>

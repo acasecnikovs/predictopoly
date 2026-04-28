@@ -387,11 +387,26 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     const dm = prefs.dataMode;
     const r = $("btn-mode-resolved");
     const a = $("btn-mode-active");
-    if (!r || !a) return;
-    r.classList.toggle("current", dm === "resolved");
-    a.classList.toggle("current", dm === "active");
-    r.setAttribute("aria-selected", dm === "resolved");
-    a.setAttribute("aria-selected", dm === "active");
+    if (r && a) {
+      r.classList.toggle("current", dm === "resolved");
+      a.classList.toggle("current", dm === "active");
+      r.setAttribute("aria-selected", dm === "resolved");
+      a.setAttribute("aria-selected", dm === "active");
+    }
+    // Mirror the active mode onto the play-screen tag (passive label, not
+    // a control - switching happens inside the deck modal).
+    const tag = $("deck-mode-tag");
+    if (tag) {
+      tag.dataset.mode = dm;
+      tag.textContent = dm === "active" ? "Live markets" : "Past markets";
+    }
+    // Help line under the modal toggle reflects which mode is active.
+    const help = $("modal-mode-help");
+    if (help) {
+      help.textContent = dm === "active"
+        ? "Currently-open questions. Your call lands in Open and gets scored when the market resolves."
+        : "~37k resolved questions, instant scoring against the outcome and the closing market price.";
+    }
   }
 
   // Descriptions are sharded into 4 files (Cloudflare Pages caps individual
@@ -473,6 +488,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (m.p1  != null) return { p: m.p1,  label: "1d before close" };
     return null;
   }
+  // Cap on the market-beat term. We want it bounded so it doesn't dwarf the
+  // calibration component in tail cases (predict 99% on a 1% market and
+  // happen to be right, that's still mostly a calibration win, not "you
+  // get +800 for disagreeing with everyone"). But the previous ±50 was
+  // too tight on the downside: a user who said 36% on a NO that the
+  // market had pinned at 1% had a Brier 1296x worse than the market's,
+  // and only lost 50 points for it (capped from -130). At ±100 the cap
+  // matches calibration's max upside, so "I lost to the market" hurts
+  // about as much as "I was uncalibrated" can reward.
+  const MARKET_BEAT_CAP = 100;
   function pointsFor(p, o, mktP) {
     const yourBrier = brierOf(p, o);
     const calibration = Math.round(100 - 400 * yourBrier);
@@ -481,7 +506,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (mktP != null) {
       mktBrier = brierOf(mktP, o);
       const delta = mktBrier - yourBrier;  // positive = you beat market
-      marketBeat = Math.max(-50, Math.min(50, Math.round(1000 * delta)));
+      marketBeat = Math.max(-MARKET_BEAT_CAP, Math.min(MARKET_BEAT_CAP, Math.round(1000 * delta)));
     }
     return {
       yourBrier, mktBrier,
@@ -492,7 +517,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- view switching -------
   function showView(name) {
-    ["play", "open", "stats"].forEach((v) => {
+    ["play", "open", "history", "stats"].forEach((v) => {
       const el = $("view-" + v);
       if (el) el.classList.toggle("hidden", v !== name);
     });
@@ -508,6 +533,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       }
     } else if (name === "open") {
       renderOpenTray();
+      // Re-sweep on tab visit so a user who keeps the tab open across a
+      // market closing still sees their resolutions land. The 30s cooldown
+      // inside checkPendingResolutions guards against view-toggle spam,
+      // and the function no-ops if there are no past-due pendings.
+      if (pending.length) checkPendingResolutions().catch(() => {});
+    } else if (name === "history") {
+      // History is always full-history, newest first - no scope toggle.
+      // The "active" origin badge inside each row tells you which mode it
+      // came from, which was the user-perceptible distinction anyway.
+      renderArchive(history);
     }
     window.scrollTo({ top: 0, behavior: "instant" });
   }
@@ -630,15 +665,15 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     return pool[pool.length - 1];
   }
 
-  // ------- top bar / session -------
-  function todayPoints() {
-    const today = new Date().toDateString();
-    return history
-      .filter((r) => new Date(r.t).toDateString() === today)
-      .reduce((s, r) => s + (r.pts || 0), 0);
+  // ------- top bar / score -------
+  // Cumulative lifetime score across all predictions (Past + Live origins).
+  // Sage-style persistent score pill; the daily-points framing was a
+  // habit-nudge that doesn't match the calibration-trainer audience.
+  function lifetimePoints() {
+    return history.reduce((s, r) => s + (r.pts || 0), 0);
   }
   function renderSession() {
-    const v = todayPoints();
+    const v = lifetimePoints();
     const el = $("session-val");
     el.textContent = fmtPts(v);
     el.classList.toggle("pos", v > 0);
@@ -690,26 +725,41 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
 
   // ------- onboarding -------
+  // Welcome card lives inside a fixed-position overlay so it floats above
+  // the play screen instead of pushing the slider below the fold. Open
+  // state is tracked on the overlay element; the inner card never carries
+  // .hidden directly.
+  function isOnboardingOpen() {
+    const ov = $("welcome-overlay");
+    return ov && !ov.classList.contains("hidden");
+  }
+  function setOnboardingOpen(open) {
+    const ov = $("welcome-overlay");
+    if (!ov) return;
+    ov.classList.toggle("hidden", !open);
+    // Lock background scroll while the overlay is up - same pattern as
+    // the deck modal. Restore previous overflow on close.
+    document.body.style.overflow = open ? "hidden" : "";
+  }
   function renderOnboarding() {
     if (localStorage.getItem(LS_ONBOARD) === "1") return;
     // Don't show the welcome card to returning users (we treat any prior
     // resolved history OR pending active prediction as "they've used this").
     if (history.length > 0 || pending.length > 0) return;
-    const card = $("welcome-card");
-    if (card) card.classList.remove("hidden");
+    setOnboardingOpen(true);
   }
   function dismissOnboarding() {
     localStorage.setItem(LS_ONBOARD, "1");
-    const card = $("welcome-card");
-    if (card) card.classList.add("hidden");
+    setOnboardingOpen(false);
   }
-  // Footer "show intro" button - re-opens the welcome card on demand. Doesn't
-  // unset LS_ONBOARD so dismissing again is silent (no re-tutorial loop).
+  // Topbar "?" re-opens the card on demand. Doesn't unset LS_ONBOARD - so
+  // dismissing again is silent (no re-tutorial loop). Toggle behavior:
+  // pressing "?" while open closes it without marking dismissed.
   function showOnboardingNow() {
-    const card = $("welcome-card");
-    if (!card) return;
-    card.classList.remove("hidden");
-    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    setOnboardingOpen(true);
+  }
+  function toggleOnboarding() {
+    setOnboardingOpen(!isOnboardingOpen());
   }
 
   // ------- play view rendering -------
@@ -947,36 +997,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   function renderOpenTray() {
     const list = $("open-list");
     const empty = $("open-empty");
-    const checkRow = $("open-check-row");
-    const checkStatus = $("open-check-status");
     if (!list || !empty) return;
-
-    // Hide any stale "Scored N..." status from the previous tray render.
-    if (checkStatus) {
-      checkStatus.textContent = "";
-      checkStatus.classList.add("hidden");
-    }
 
     if (!pending.length) {
       list.innerHTML = "";
       empty.classList.remove("hidden");
-      if (checkRow) checkRow.classList.add("hidden");
       return;
     }
     empty.classList.add("hidden");
-
-    // Only show the "Check now" affordance when at least one pending entry
-    // is past its endDate. Otherwise there's nothing the button could do
-    // (every market is still open) and showing it is just noise.
-    if (checkRow) {
-      const now = Date.now();
-      const anyDue = pending.some((r) => {
-        if (!r.end) return false;
-        const t = new Date(r.end).getTime();
-        return Number.isFinite(t) && t < now;
-      });
-      checkRow.classList.toggle("hidden", !anyDue);
-    }
 
     // Make sure active slugs are in flight even if user is in resolved mode -
     // pending links resolve once the file lands.
@@ -1141,7 +1169,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     const el = $("resolved-banner");
     const txt = $("resolved-banner-text");
     if (!el || !txt) return;
-    txt.innerHTML = `<b>${n}</b> active prediction${n === 1 ? "" : "s"} just resolved.`;
+    txt.innerHTML = `<b>${n}</b> live-market prediction${n === 1 ? "" : "s"} just resolved.`;
     el.classList.remove("hidden");
   }
   function hideResolvedBanner() {
@@ -1161,13 +1189,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   let lastResolutionCheck = 0;
   const RESOLUTION_CHECK_COOLDOWN_MS = 30_000;
 
-  async function checkPendingResolutions({ manual = false } = {}) {
+  async function checkPendingResolutions() {
     if (checkingResolutions) return { checked: 0, resolved: 0 };
-    // Cheap rate limit. Boot fires this automatically; if the user spams
-    // the manual button we don't want to hammer gamma even though the
-    // edge cache absorbs most of it.
+    // Cheap rate limit. Sweep fires on boot AND every time the user
+    // navigates to the Open tray, so without a cooldown a quick toggle
+    // between views would hammer gamma. Edge cache absorbs most of this
+    // anyway, but no reason to be rude.
     const now = Date.now();
-    if (!manual && now - lastResolutionCheck < RESOLUTION_CHECK_COOLDOWN_MS) {
+    if (now - lastResolutionCheck < RESOLUTION_CHECK_COOLDOWN_MS) {
       return { checked: 0, resolved: 0 };
     }
 
@@ -1183,11 +1212,6 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
     checkingResolutions = true;
     lastResolutionCheck = now;
-    const btn = $("btn-check-resolutions");
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = "Checking…";
-    }
 
     const resolvedIds = new Set();
     try {
@@ -1267,25 +1291,6 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       }
     } finally {
       checkingResolutions = false;
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = "Check now";
-      }
-    }
-
-    if (manual) {
-      // Surface the result so the user knows the click did something even
-      // when nothing flipped. Cheap inline status, no toast plumbing.
-      const status = $("open-check-status");
-      if (status) {
-        const n = resolvedIds.size;
-        if (n > 0) {
-          status.textContent = `Scored ${n} prediction${n === 1 ? "" : "s"}.`;
-        } else {
-          status.textContent = "No resolutions yet - markets are still pending.";
-        }
-        status.classList.remove("hidden");
-      }
     }
 
     return { checked: due.length, resolved: resolvedIds.size };
@@ -1601,7 +1606,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       const bits = [];
       if (open > 0) bits.push(`${open} open prediction${open === 1 ? "" : "s"} awaiting resolution`);
       if (resolved === 0 && open === 0) {
-        bits.push("No active predictions yet - switch to Active mode and make one.");
+        bits.push("No live-market predictions yet - switch to Live markets and make one.");
       } else if (resolved === 0 && open > 0) {
         bits.push("Stats fill in once your open predictions resolve.");
       }
@@ -1625,10 +1630,13 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       $("s-log").textContent = "-";
       $("s-vs-mkt").textContent = "-";
       const emptyMsg = statsScope === "active"
-        ? 'Active scores show up here when your <b>Open</b> predictions resolve on Polymarket.'
+        ? 'Live-market scores show up here when your <b>Open</b> predictions resolve on Polymarket.'
         : 'Predict a few questions to see your calibration breakdown.';
       $("s-by-cat").innerHTML = `<div class="muted small">${emptyMsg}</div>`;
-      if (chart) { chart.destroy(); chart = null; }
+      renderPatternVerdict(hist);
+      renderReliability(hist);
+      const missesSection = $("biggest-misses-section");
+      if (missesSection) missesSection.classList.add("hidden");
       return;
     }
     const totalPts = hist.reduce((s, r) => s + (r.pts || 0), 0);
@@ -1665,9 +1673,79 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       $("s-vs-mkt").innerHTML = `<span class="muted small">need ${3 - withMkt.length} more</span>`;
     }
 
+    renderPatternVerdict(hist);
     renderReliability(hist);
+    renderBiggestMisses(hist);
     renderByCategory(hist);
-    renderArchive(hist);
+  }
+
+  // ------- pattern verdict -------
+  // One-line, sample-size-honest read of where the user's calibration is
+  // off. Uses 5 wide buckets (20pp each) instead of the chart's 10 narrow
+  // ones - we're after a robust signal, not chart fidelity. Below 20
+  // scored predictions we don't make claims about bias, we just say the
+  // sample is too small. Sample-size honesty matters more than bravado:
+  // an early "you're overconfident at 80%" off 4 data points is teaching
+  // the user to chase noise.
+  function renderPatternVerdict(hist) {
+    const el = $("pattern-verdict");
+    if (!el) return;
+    const n = hist.length;
+    if (n === 0) { el.innerHTML = ""; el.classList.add("hidden"); return; }
+    el.classList.remove("hidden");
+    if (n < 20) {
+      const need = 20 - n;
+      el.innerHTML = `<b>${n} scored ${n === 1 ? "prediction" : "predictions"} so far.</b> Need ${need} more before we can read patterns from your data - small samples lie.`;
+      return;
+    }
+    const buckets = Array.from({ length: 5 }, () => ({ pred: 0, actual: 0, n: 0 }));
+    for (const r of hist) {
+      const idx = Math.min(4, Math.floor(r.p * 5));
+      buckets[idx].pred += r.p;
+      buckets[idx].actual += r.o;
+      buckets[idx].n += 1;
+    }
+    let worst = null;
+    for (let i = 0; i < 5; i++) {
+      if (buckets[i].n < 3) continue;
+      const avgPred = buckets[i].pred / buckets[i].n;
+      const avgActual = buckets[i].actual / buckets[i].n;
+      const dev = avgPred - avgActual;
+      if (!worst || Math.abs(dev) > Math.abs(worst.dev)) {
+        worst = { bucket: i, avgPred, avgActual, dev, n: buckets[i].n };
+      }
+    }
+    let conf = "";
+    if (n < 50) conf = " Small sample though - watch for the pattern as you keep going.";
+    else if (n < 100) conf = ` Need ~${100 - n} more for a confident read.`;
+    if (!worst || Math.abs(worst.dev) < 0.07) {
+      el.innerHTML = `<b>${n} scored predictions.</b> You're roughly on the line - no big calibration bias jumps out.${conf}`;
+      return;
+    }
+    const bandLabels = ["0-20%", "20-40%", "40-60%", "60-80%", "80-100%"];
+    const overOrUnder = worst.dev > 0 ? "overconfident" : "underconfident";
+    const actualPct = Math.round(worst.avgActual * 100);
+    const predPct = Math.round(worst.avgPred * 100);
+    el.innerHTML = `<b>${n} scored predictions.</b> Biggest pattern: <b>${overOrUnder}</b> in the ${bandLabels[worst.bucket]} band - your calls there averaged ${predPct}% but actually happened ${actualPct}% of the time (n=${worst.n}).${conf}`;
+  }
+
+  // ------- biggest misses -------
+  // Top 5 highest-Brier predictions. Concrete bad calls are more useful
+  // for calibration learning than aggregate Brier - you remember the
+  // question, you remember why you got it wrong. Reuses the archive row
+  // component so the visual pattern is consistent with History.
+  function renderBiggestMisses(hist) {
+    const section = $("biggest-misses-section");
+    const list = $("biggest-misses");
+    if (!section || !list) return;
+    if (hist.length < 5) {
+      section.classList.add("hidden");
+      list.innerHTML = "";
+      return;
+    }
+    section.classList.remove("hidden");
+    const sorted = [...hist].sort((a, b) => b.brier - a.brier).slice(0, 5);
+    list.innerHTML = sorted.map(archiveRowHtml).join("");
   }
 
   // ------- archive (recent predictions list) -------
@@ -1748,7 +1826,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     const empty = $("archive-empty");
     const more = $("btn-archive-more");
     if (!list) return;
-    if (!hist) hist = statsHistory();
+    // History view is unscoped: full track record, newest first. The Stats
+    // page no longer renders this list, so we no longer derive from
+    // statsHistory() here.
+    if (!hist) hist = history;
 
     if (!hist.length) {
       list.innerHTML = "";
@@ -1778,7 +1859,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     // re-paint when it lands so links light up shortly after.
     if (!activeLoaded && hist.some((r) => r.origin === "active")) {
       loadActiveData().then(() => {
-        if (currentView === "stats") renderArchive();
+        if (currentView === "history") renderArchive();
       });
     }
   }
@@ -1840,9 +1921,13 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
           tooltip: {
             callbacks: {
               label: (c) => {
-                if (c.dataset.label === "Perfect") return "";
+                if (c.dataset.label === "Perfect") return "perfect calibration";
                 const { x, y, n } = c.raw;
-                return `n=${n}, said ${(x * 100).toFixed(0)}%, actual ${(y * 100).toFixed(0)}%`;
+                const dev = x - y;
+                const tag = Math.abs(dev) < 0.05
+                  ? "on the line"
+                  : (dev > 0 ? "overconfident" : "underconfident");
+                return `n=${n}, said ${(x * 100).toFixed(0)}%, actual ${(y * 100).toFixed(0)}% - ${tag}`;
               },
             },
           },
@@ -1992,6 +2077,17 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       $("reveal-block").classList.add("hidden");
       $("reveal-block-active").classList.add("hidden");
       $("predict-block").classList.remove("hidden");
+      // The mode toggle now lives inside Change deck. If the user flipped
+      // there, the modal's presets / category grid / sort labels / pool
+      // count are still showing the old universe - re-render them so the
+      // whole sheet stays consistent with the active mode.
+      const modalEl = $("deck-modal");
+      if (modalEl && !modalEl.classList.contains("hidden")) {
+        renderPresets();
+        renderDeckGrid();
+        renderSortRow();
+        updateDeckPoolInfo();
+      }
       nextQuestion();
     }
     $("btn-mode-resolved").addEventListener("click", () => switchMode("resolved"));
@@ -2008,25 +2104,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       });
     }
 
-    // Manual "Check now" - in case the user wants to re-check after the
-    // boot-time sweep (e.g. they kept the tab open and a market they were
-    // tracking just closed). Same code path as the auto-sweep.
-    const checkBtn = $("btn-check-resolutions");
-    if (checkBtn) {
-      checkBtn.addEventListener("click", () => {
-        checkPendingResolutions({ manual: true }).catch(() => {});
-      });
-    }
-
-    // Just-resolved banner: "See results" jumps to stats in active scope so
-    // the user sees their newly-scored entries immediately. X dismisses.
+    // Just-resolved banner: "See results" jumps to History so the user
+    // sees the concrete cards that just landed. X dismisses.
     const bannerCta = $("btn-resolved-banner-view");
     if (bannerCta) {
       bannerCta.addEventListener("click", () => {
         hideResolvedBanner();
-        statsScope = "active";
+        // Reset paging so newly-resolved entries are visible without
+        // having to "Show more" past prior page state from a previous visit.
         archiveLimit = ARCHIVE_PAGE_SIZE;
-        showView("stats");
+        showView("history");
       });
     }
     const bannerDismiss = $("btn-resolved-banner-dismiss");
@@ -2117,12 +2204,21 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       });
     });
 
-    // welcome card dismiss (X and "Got it" both close it)
+    // welcome card dismiss - the X is the sole explicit close affordance.
+    // Backdrop click and Esc also dismiss (they're standard modal patterns
+    // and the user expects them once the card floats above the page).
     $("btn-onboarding-dismiss").addEventListener("click", dismissOnboarding);
-    $("btn-welcome-go").addEventListener("click", dismissOnboarding);
-    // footer "show intro" - re-opens the card whenever the user wants a refresher
-    const introBtn = $("btn-show-intro");
-    if (introBtn) introBtn.addEventListener("click", showOnboardingNow);
+    const welcomeOverlay = $("welcome-overlay");
+    if (welcomeOverlay) {
+      welcomeOverlay.addEventListener("click", (e) => {
+        if (e.target === welcomeOverlay) dismissOnboarding();
+      });
+    }
+    // Topbar "?" glyph toggles the welcome card. The single canonical entry
+    // point now that the footer "show intro" link has been removed - one
+    // affordance, less duplication, less footer crowding.
+    const helpTop = $("btn-help-topbar");
+    if (helpTop) helpTop.addEventListener("click", toggleOnboarding);
 
     // empty-deck "Change deck" button just opens the deck modal
     $("btn-empty-open-deck").addEventListener("click", openDeckModal);
@@ -2158,8 +2254,29 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       // through the deck without the user ever reading anything. We want
       // strictly one keypress -> one action.
       if (e.repeat) return;
+      // Welcome overlay catches Esc / Enter first - so first-paint users can
+      // dismiss the explainer with the keyboard before play-screen shortcuts
+      // activate. Both keys close it (Enter is "got it, let me predict").
+      if (isOnboardingOpen()) {
+        if (e.key === "Escape" || e.key === "Enter") {
+          e.preventDefault();
+          dismissOnboarding();
+        }
+        return;
+      }
       if ($("deck-modal") && !$("deck-modal").classList.contains("hidden")) {
         if (e.key === "Escape") closeDeckModal();
+        // Enter dismisses the modal as if Done was clicked - but only when
+        // focus is on the modal backdrop / body, not on an interactive
+        // control. Otherwise the native Enter-on-button behavior (toggle a
+        // preset, flip mode, pick a category) would race with closing.
+        else if (e.key === "Enter") {
+          const tag = e.target && e.target.tagName;
+          if (tag !== "BUTTON" && tag !== "INPUT" && tag !== "SELECT" && tag !== "TEXTAREA") {
+            e.preventDefault();
+            closeDeckModal();
+          }
+        }
         return;
       }
       if (currentView !== "play") return;
