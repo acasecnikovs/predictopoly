@@ -1157,7 +1157,11 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 /* ------- responsive ------- */
 
 @media (max-width: 600px) {
-  .topbar { padding: 1rem 1rem 0; gap: 0.5rem; }
+  /* Phone topbar: drop the wordmark, the nav and score pill alone fill
+     the row comfortably. The Play tab doubles as a home link, the URL
+     bar already shows the brand. */
+  .topbar { padding: 1rem 1rem 0; gap: 0.5rem; grid-template-columns: 1fr auto; }
+  .wordmark { display: none; }
   main { padding: 0.5rem 1rem 4rem; }
   footer { padding: 1.25rem 1rem 2rem; }
   .question { font-size: 1.25rem; }
