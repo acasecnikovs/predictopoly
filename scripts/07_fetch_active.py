@@ -77,12 +77,21 @@ def fetch_window(end_min: datetime, end_max: datetime) -> list[dict]:
 
 
 def fetch_all_active(now: datetime, max_days: float) -> list[dict]:
-    """Slice the time horizon into ~30-day windows so each fetch stays under
-    the 20k page-limit cap. Dedup on id since adjacent windows can overlap."""
+    """Slice the time horizon into windows so each fetch stays under the
+    gamma pagination cap. Dedup on id since adjacent windows can overlap.
+
+    Window step was 30 days originally; tightened to 7 days on 2026-04-29
+    after the active deck grew past offset 7300, which is where gamma
+    starts hard-500ing the /markets endpoint within a single filter set.
+    A 7-day window holds ~1500-2000 active markets in practice, well
+    under the cap with room for further deck growth before we hit it
+    again. Tradeoff: ~13 windows for the default 90-day horizon instead
+    of 3, adding ~30s of fetch time. Acceptable for the daily cron.
+    """
     seen = {}
     cursor = now
     horizon = now + timedelta(days=max_days)
-    step = timedelta(days=30)
+    step = timedelta(days=7)
     while cursor < horizon:
         window_end = min(cursor + step, horizon)
         batch = fetch_window(cursor, window_end)

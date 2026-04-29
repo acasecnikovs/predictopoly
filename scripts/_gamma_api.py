@@ -80,6 +80,14 @@ def fetch_open_markets(
     reaching actually-approaching markets.
 
     active_only filters out markets that exist but aren't trading.
+
+    Tolerance: gamma hard-500s once the offset crosses ~7300 within a single
+    window's filter set (verified empirically 2026-04-29 - the active deck
+    grew past that cap). If pagination dies mid-stream we return what we
+    already got and log a warning rather than raising. The caller slices
+    the timeline into smaller windows; combined, a partial failure in
+    window N still contributes its first ~7300 to the dedup'd output
+    while window N+1 picks up the rest from a different endDate cursor.
     """
     out = []
     offset = 0
@@ -97,7 +105,23 @@ def fetch_open_markets(
             params["end_date_min"] = end_date_min
         if end_date_max:
             params["end_date_max"] = end_date_max
-        batch = _get(GAMMA, "/markets", params)
+        try:
+            batch = _get(GAMMA, "/markets", params)
+        except HTTPError as e:
+            # Treat 500 at deep offsets as the gamma pagination cap, not a
+            # fatal error. Above ~offset 7300 it's reproducible; below that
+            # a 500 is genuinely rare and we'll still surface it on the
+            # next call. Log and stop paginating so the caller sees a
+            # partial result instead of an exception.
+            if e.code >= 500:
+                print(
+                    f"  gamma {e.code} at offset={offset} after {page} pages; "
+                    f"returning partial ({len(out)} markets, window "
+                    f"{end_date_min}..{end_date_max})",
+                    file=__import__("sys").stderr,
+                )
+                break
+            raise
         if not isinstance(batch, list) or not batch:
             break
         out.extend(batch)

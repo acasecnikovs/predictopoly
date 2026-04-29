@@ -63,7 +63,22 @@ jobs:
             predictopoly-active-pipeline-
 
       - name: Fetch active markets (07)
-        run: python scripts/07_fetch_active.py
+        # Two-level retry: _gamma_api.py handles per-request flaps (6 attempts,
+        # exp backoff, ~5 min). This wrapper catches the case where gamma is
+        # hard-down for a multi-minute stretch and retries the whole fetch once
+        # after a 60s rest. Total tolerance ~10 min, well under the 30 min job
+        # timeout. A single bad scrape window shouldn't fail the daily cron.
+        run: |
+          set +e
+          python scripts/07_fetch_active.py
+          rc=$?
+          if [ $rc -ne 0 ]; then
+            echo "::warning::07_fetch_active failed (rc=$rc), sleeping 60s and retrying once"
+            sleep 60
+            python scripts/07_fetch_active.py
+            rc=$?
+          fi
+          exit $rc
 
       - name: Classify (08, incremental)
         env:
