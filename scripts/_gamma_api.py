@@ -15,6 +15,8 @@ Read-only. No wallet, no auth.
 from __future__ import annotations
 
 import json
+import random
+import sys
 import time
 from typing import Any
 from urllib.error import HTTPError
@@ -29,8 +31,13 @@ _UA = (
 )
 
 
-def _get(base: str, path: str, params: dict | None = None, retries: int = 3,
-         timeout: int = 30) -> Any:
+def _get(base: str, path: str, params: dict | None = None, retries: int = 6,
+         timeout: int = 45) -> Any:
+    # Retry budget tuned for the daily GHA refresh: gamma occasionally drops
+    # connections mid-page during a multi-window fetch. Exponential backoff
+    # with jitter (1, 2, 4, 8, 16, 30s capped) covers a ~60s flap window
+    # without giving up. 400 is a real client error and short-circuits;
+    # everything else (timeouts, 5xx, 429, connection resets) retries.
     url = base + path
     if params:
         url = f"{url}?{urlencode(params)}"
@@ -40,18 +47,21 @@ def _get(base: str, path: str, params: dict | None = None, retries: int = 3,
             with urlopen(req, timeout=timeout) as r:
                 return json.loads(r.read())
         except HTTPError as e:
-            if e.code == 429:
-                time.sleep(2 ** attempt)
-                continue
             if e.code == 400:
                 return None
             if attempt == retries - 1:
                 raise
-            time.sleep(1)
-        except Exception:
+            backoff = min(30, 2 ** attempt) + random.uniform(0, 0.5)
+            print(f"  gamma {e.code} on {path}, retry {attempt + 1}/{retries} in {backoff:.1f}s",
+                  file=sys.stderr)
+            time.sleep(backoff)
+        except Exception as e:
             if attempt == retries - 1:
                 raise
-            time.sleep(1)
+            backoff = min(30, 2 ** attempt) + random.uniform(0, 0.5)
+            print(f"  gamma {type(e).__name__} on {path}, retry {attempt + 1}/{retries} in {backoff:.1f}s",
+                  file=sys.stderr)
+            time.sleep(backoff)
     return None
 
 
