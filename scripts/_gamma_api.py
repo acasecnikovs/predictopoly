@@ -19,7 +19,7 @@ import random
 import sys
 import time
 from typing import Any
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -71,8 +71,12 @@ def fetch_open_markets(
     end_date_min: str | None = None,
     end_date_max: str | None = None,
     active_only: bool = True,
-) -> list[dict]:
+) -> tuple[list[dict], bool]:
     """Paginate through OPEN (not resolved) markets.
+
+    Returns (markets, capped). `capped=True` means gamma 500'd mid-pagination
+    and we stopped early - the caller should narrow the window and retry the
+    missing tail rather than ship an incomplete result.
 
     end_date_min/max are ISO dates (YYYY-MM-DD). Polymarket has many zombie
     markets with endDate in the past that never got closed=true - without
@@ -81,16 +85,18 @@ def fetch_open_markets(
 
     active_only filters out markets that exist but aren't trading.
 
-    Tolerance: gamma hard-500s once the offset crosses ~7300 within a single
-    window's filter set (verified empirically 2026-04-29 - the active deck
-    grew past that cap). If pagination dies mid-stream we return what we
-    already got and log a warning rather than raising. The caller slices
-    the timeline into smaller windows; combined, a partial failure in
-    window N still contributes its first ~7300 to the dedup'd output
-    while window N+1 picks up the rest from a different endDate cursor.
+    Cap behavior: gamma 500s on /markets at variable offsets - sometimes
+    deep (3000+ pages), sometimes shallow (offset 200) depending on backend
+    load. Verified empirically 2026-04-29 across three back-to-back runs:
+    same window can cap at offset 3900 then 3300 then 200 minutes apart.
+    Retry alone can't fix this - the server is genuinely refusing. The
+    caller (07_fetch_active.fetch_all_active) handles `capped=True` by
+    splitting the date window and recursing, which reliably gets us under
+    whatever per-query ceiling gamma is enforcing today.
     """
     out = []
     offset = 0
+    capped = False
     for page in range(max_pages):
         params: dict[str, Any] = {
             "closed": "false",
@@ -108,20 +114,31 @@ def fetch_open_markets(
         try:
             batch = _get(GAMMA, "/markets", params)
         except HTTPError as e:
-            # Treat 500 at deep offsets as the gamma pagination cap, not a
-            # fatal error. Above ~offset 7300 it's reproducible; below that
-            # a 500 is genuinely rare and we'll still surface it on the
-            # next call. Log and stop paginating so the caller sees a
-            # partial result instead of an exception.
+            # Gamma 500s mid-pagination = the per-query cap, not a transient
+            # blip. Flag capped=True and bail; the caller will split the
+            # date range and recurse. Below 5xx (e.g. 4xx that wasn't 400)
+            # is genuine and we re-raise.
             if e.code >= 500:
                 print(
-                    f"  gamma {e.code} at offset={offset} after {page} pages; "
-                    f"returning partial ({len(out)} markets, window "
-                    f"{end_date_min}..{end_date_max})",
+                    f"  gamma {e.code} at offset={offset} after {page} pages, "
+                    f"window {end_date_min}..{end_date_max} - flagging capped",
                     file=__import__("sys").stderr,
                 )
+                capped = True
                 break
             raise
+        except (URLError, TimeoutError, ConnectionError, OSError) as e:
+            # Network failure after _get exhausted all retries. Treat as
+            # cap-equivalent so the recursive caller can split the window
+            # and try smaller; the alternative is a hard crash on every
+            # transient gamma flap that lasts longer than ~5 min.
+            print(
+                f"  gamma {type(e).__name__} at offset={offset} after {page} pages, "
+                f"window {end_date_min}..{end_date_max} - flagging capped",
+                file=__import__("sys").stderr,
+            )
+            capped = True
+            break
         if not isinstance(batch, list) or not batch:
             break
         out.extend(batch)
@@ -129,7 +146,7 @@ def fetch_open_markets(
             break
         offset += limit_per_page
         time.sleep(0.25)
-    return out
+    return out, capped
 
 
 def parse_clob_tokens(m: dict) -> tuple[str | None, str | None]:

@@ -63,10 +63,8 @@ def _event_id(m):
     return None
 
 
-def fetch_window(end_min: datetime, end_max: datetime) -> list[dict]:
-    """One window of fetch_open_markets. Gamma cursor is ascending-by-endDate
-    and caps at ~20k per call, so we slice the timeline into windows that
-    each fit under the cap."""
+def fetch_window(end_min: datetime, end_max: datetime) -> tuple[list[dict], bool]:
+    """One window of fetch_open_markets. Returns (markets, capped)."""
     return api.fetch_open_markets(
         limit_per_page=100,
         max_pages=300,
@@ -76,17 +74,71 @@ def fetch_window(end_min: datetime, end_max: datetime) -> list[dict]:
     )
 
 
+# Gamma's /markets cap is load-dependent: it 500s at variable offsets - sometimes
+# 3900, sometimes 200 - on the same query minutes apart. Verified by running the
+# script three times back-to-back on 2026-04-29 and seeing the same window cap
+# at three different offsets. Static window sizes can't fix this. Adaptive
+# splitting can: when a window comes back capped, halve the date range and
+# recurse on each half. Each split queries fewer markets, so the smaller
+# request stays under whatever ceiling gamma is enforcing right now.
+MIN_SPLIT_HOURS = 12  # don't split finer than half a day; below this, accept partial
+MAX_SPLIT_DEPTH = 6   # 7d -> 3.5d -> 1.75d -> ~21h -> ~10h floor; safety cap
+
+
+def fetch_window_adaptive(start: datetime, end: datetime, depth: int = 0) -> list[dict]:
+    """Fetch one date window. If gamma caps it, split and recurse on both halves.
+
+    Returns the union of all markets covered. Outer caller dedups on id.
+    """
+    batch, capped = fetch_window(start, end)
+    span_h = (end - start).total_seconds() / 3600
+    if not capped or depth >= MAX_SPLIT_DEPTH or span_h <= MIN_SPLIT_HOURS:
+        # Either we got the full window, hit the recursion floor, or the window
+        # is already too narrow to split usefully. Take what we have.
+        if capped:
+            print(
+                f"  window {start.date()} to {end.date()} ({span_h:.1f}h) "
+                f"still capped after split depth {depth}; accepting "
+                f"partial {len(batch)} markets",
+                file=sys.stderr,
+            )
+        return batch
+
+    # Capped: split. Use the last endDate we received as the pivot when
+    # possible (more efficient than midpoint - we know everything left of
+    # that endDate is already covered). Fall back to date midpoint if the
+    # batch is empty or has unparseable dates.
+    pivot = None
+    if batch:
+        last_end_str = batch[-1].get("endDate")
+        if last_end_str:
+            try:
+                pivot = datetime.fromisoformat(last_end_str.replace("Z", "+00:00"))
+            except ValueError:
+                pivot = None
+    if pivot is None or pivot <= start or pivot >= end:
+        pivot = start + (end - start) / 2
+
+    print(
+        f"  splitting {start.date()}..{end.date()} at {pivot.date()} "
+        f"(depth {depth}, got {len(batch)} so far)",
+        file=sys.stderr,
+    )
+    # Left half is already covered by `batch` up to pivot. Only re-fetch the
+    # right half, which is the part gamma refused.
+    right = fetch_window_adaptive(pivot, end, depth + 1)
+    return batch + right
+
+
 def fetch_all_active(now: datetime, max_days: float) -> list[dict]:
-    """Slice the time horizon into windows so each fetch stays under the
-    gamma pagination cap. Dedup on id since adjacent windows can overlap.
+    """Slice the time horizon into 7-day windows; each window does adaptive
+    split if gamma caps it. Dedup on id since adjacent windows can overlap.
 
     Window step was 30 days originally; tightened to 7 days on 2026-04-29
-    after the active deck grew past offset 7300, which is where gamma
-    starts hard-500ing the /markets endpoint within a single filter set.
-    A 7-day window holds ~1500-2000 active markets in practice, well
-    under the cap with room for further deck growth before we hit it
-    again. Tradeoff: ~13 windows for the default 90-day horizon instead
-    of 3, adding ~30s of fetch time. Acceptable for the daily cron.
+    after the active deck grew past gamma's per-query cap. Combined with
+    fetch_window_adaptive's recursive splitting, that handles both deck
+    growth (more markets per window) and gamma load variance (cap drops
+    to surprising offsets under load).
     """
     seen = {}
     cursor = now
@@ -94,7 +146,7 @@ def fetch_all_active(now: datetime, max_days: float) -> list[dict]:
     step = timedelta(days=7)
     while cursor < horizon:
         window_end = min(cursor + step, horizon)
-        batch = fetch_window(cursor, window_end)
+        batch = fetch_window_adaptive(cursor, window_end)
         print(f"  window {cursor.date()} to {window_end.date()}: {len(batch)} raw", file=sys.stderr)
         for m in batch:
             mid = str(m.get("id", ""))
