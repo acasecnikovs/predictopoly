@@ -362,6 +362,14 @@ main {
 @media (max-width: 600px) {
   .welcome-shortcuts-list { grid-template-columns: 1fr; }
 }
+/* No physical keyboard => the shortcut block is just visual noise. Hide it on
+   touch-only pointers and swap the dismiss hint to a tap-friendly variant. */
+.hint-touch { display: none; }
+@media (pointer: coarse) {
+  .welcome-shortcuts { display: none; }
+  .hint-default { display: none; }
+  .hint-touch { display: inline; }
+}
 .welcome-close {
   position: absolute;
   top: 0.625rem; right: 0.75rem;
