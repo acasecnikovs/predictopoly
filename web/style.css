@@ -85,12 +85,16 @@ button:hover .arrow, a:hover .arrow { transform: translateX(2px); }
   font-size: 0.875rem; color: var(--muted); font-weight: 500;
   padding: 0.4rem 0.75rem; border-radius: 4px;
   transition: background 0.1s ease, color 0.1s ease;
+  /* inline-flex keeps the count badge centered with the label so the badge
+     can't push "Open" up when fonts re-baseline (notably on small phones). */
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  line-height: 1.2;
 }
 .navlink:hover { color: var(--accent); background: var(--accent-soft); }
 .navlink.current { color: var(--accent); }
 .nav-count {
-  display: inline-block;
-  margin-left: 0.35rem;
+  /* inline-flex parent (.navlink) handles centering; we just style the pill
+     and let it size naturally. No vertical-align hack needed. */
   padding: 0.05rem 0.4rem;
   background: var(--accent-soft);
   color: var(--accent);
@@ -98,7 +102,6 @@ button:hover .arrow, a:hover .arrow { transform: translateX(2px); }
   font-size: 0.7rem;
   font-weight: 600;
   line-height: 1.4;
-  vertical-align: 1px;
 }
 .navlink.current .nav-count { background: var(--accent); color: #fff; }
 
@@ -946,6 +949,9 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   border-radius: 6px;
   padding: 0.625rem 0.75rem 0.625rem 0.875rem;
   user-select: none;
+  /* Whole card is the click target for toggling the category. The chevron
+     button and sub chips have their own stopPropagation. */
+  cursor: pointer;
   display: flex; flex-direction: column; gap: 0.5rem;
   transition: border-color 0.1s ease, background 0.1s ease;
   background: #fff;
@@ -966,7 +972,8 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   display: flex; align-items: flex-start; gap: 0.25rem;
 }
 .deck-head-text {
-  flex: 1; cursor: pointer;
+  /* cursor: pointer is on the parent card now */
+  flex: 1;
   display: flex; flex-direction: column; gap: 0.15rem;
 }
 .deck-card .deck-name {

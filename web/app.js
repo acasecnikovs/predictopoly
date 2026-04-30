@@ -1683,8 +1683,15 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
         });
       }
 
-      // toggle whole category by clicking head text
-      card.querySelector(".deck-head-text").addEventListener("click", () => {
+      // Toggle whole category by clicking anywhere on the card (mobile users
+      // were missing the small text region and tapping padding produced nothing).
+      // The expand chevron and sub-chips already stopPropagation, so their
+      // own actions don't double-fire here.
+      card.addEventListener("click", (e) => {
+        // Defensive: if a click landed on something inside the card that we
+        // don't expect to toggle (links, etc), bail. Today everything inside
+        // either is the head-text or has its own stopPropagation.
+        if (e.target.closest(".deck-exp, .sub-chip")) return;
         setCatAll(cat, state !== "on");
         renderPresets();
         renderDeckGrid();
