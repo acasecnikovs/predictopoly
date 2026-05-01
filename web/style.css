@@ -956,23 +956,23 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   margin: 0 0 0.5rem;
 }
 /* Bordered chip rather than a bare text link - the bare link version was
-   invisible even when you were looking for it. The chip sits compactly
-   next to the section label, reads as clickable, and the ✕ glyph
-   carries the meaning at a glance. */
+   invisible even when you were looking for it. Rose tint on text and
+   border catches the eye and reads as "this is the off-switch" without
+   the alarm of a full danger red. */
 .link-btn {
   font-size: 0.8125rem;
-  color: var(--muted);
+  color: #b54a6c;
   background: var(--bg);
-  border: 1px solid var(--line);
+  border: 1px solid rgba(181, 74, 108, 0.4);
   border-radius: 4px;
   padding: 0.25rem 0.6rem;
   cursor: pointer;
   transition: color 0.1s ease, border-color 0.1s ease, background 0.1s ease;
 }
 .link-btn:hover {
-  color: var(--text);
-  border-color: var(--muted);
-  background: var(--line-soft);
+  color: #b54a6c;
+  border-color: #b54a6c;
+  background: rgba(181, 74, 108, 0.06);
 }
 .link-btn[disabled] {
   color: var(--line);
