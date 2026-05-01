@@ -945,6 +945,26 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   color: #fff;
 }
 
+/* "Clear" is a utility action, not a category - visually distinct so users
+   trying to start over don't have to scan a row of identical-looking pills.
+   Right-aligned via margin-left:auto (last flex child); soft danger tint
+   with --no to mirror the Reset Everything button's treatment. */
+.preset[data-preset="clear"] {
+  margin-left: auto;
+  color: var(--no);
+  border-color: rgba(214, 69, 69, 0.35);
+}
+.preset[data-preset="clear"]:hover {
+  background: rgba(214, 69, 69, 0.08);
+  border-color: var(--no);
+  color: var(--no);
+}
+.preset[data-preset="clear"].on {
+  background: var(--no);
+  border-color: var(--no);
+  color: #fff;
+}
+
 .deck-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -1579,8 +1579,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       if (p.hotFlag && prefs.dataMode === "active") continue;
       const btn = document.createElement("button");
       btn.className = "preset" + (presetMatches(p) ? " on" : "");
+      btn.dataset.preset = p.id;
       btn.title = p.hint;
-      btn.textContent = p.label;
+      btn.textContent = p.id === "clear" ? "✕ Clear" : p.label;
       btn.addEventListener("click", () => applyPreset(p.id));
       wrap.appendChild(btn);
     }
