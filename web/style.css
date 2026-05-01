@@ -955,33 +955,32 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   align-items: baseline;
   margin: 0 0 0.5rem;
 }
-/* Bordered chip rather than a bare text link - the bare link version was
-   invisible even when you were looking for it. Rose tint on text and
-   border catches the eye and reads as "this is the off-switch" without
-   the alarm of a full danger red. */
+/* Bordered chip with stronger neutral chrome than --line - the lighter
+   border made it disappear even with the icon. --muted border + dark
+   text reads as a real button without leaning on a brand color. */
 .link-btn {
   font-size: 0.8125rem;
-  color: #b54a6c;
+  color: var(--text);
   background: var(--bg);
-  border: 1px solid rgba(181, 74, 108, 0.4);
+  border: 1px solid var(--muted);
   border-radius: 4px;
   padding: 0.25rem 0.6rem;
   cursor: pointer;
   transition: color 0.1s ease, border-color 0.1s ease, background 0.1s ease;
 }
 .link-btn:hover {
-  color: #b54a6c;
-  border-color: #b54a6c;
-  background: rgba(181, 74, 108, 0.06);
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 .link-btn[disabled] {
   color: var(--line);
-  border-color: var(--line-soft);
+  border-color: var(--line);
   cursor: default;
 }
 .link-btn[disabled]:hover {
   color: var(--line);
-  border-color: var(--line-soft);
+  border-color: var(--line);
   background: var(--bg);
 }
 
