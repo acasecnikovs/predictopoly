@@ -1,0 +1,52 @@
+name: deploy-pages
+
+# Backup deploy path. Cloudflare Pages' GitHub integration normally
+# auto-builds on push, but it has silently stopped picking up commits
+# at least once (1 May 2026: 10 commits accumulated on main while the
+# integration was dormant, only fixed by `wrangler pages deploy`).
+# This workflow re-deploys the web/ bundle on every push so we don't
+# notice the next outage in production.
+#
+# Required secret: CLOUDFLARE_API_TOKEN (generate at
+# https://dash.cloudflare.com/profile/api-tokens with template
+# "Edit Cloudflare Workers" or a custom token with Account >
+# Cloudflare Pages > Edit). Account ID is non-secret (visible in any
+# wrangler output) and inlined below.
+
+on:
+  push:
+    branches: [main]
+    # Skip pure data/ commits - the bot's daily refresh writes parquets
+    # there but the web bundle (web/data/*.json) is a separate path that
+    # IS deployed, so the path filter still fires for those.
+    paths:
+      - "web/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  deployments: write
+
+# Don't queue parallel deploys - if two pushes land close together,
+# cancel the older build and let the newer one finish. Production should
+# always reflect the latest commit on main.
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 9a61276085d854943b837875cdb72121
+          command: pages deploy web --project-name=predictopoly --branch=main --commit-dirty=true
