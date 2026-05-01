@@ -104,12 +104,6 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       hint: "if you really want game outcomes",
       build: (tax) => pickCats(tax, ["Sports"]),
     },
-    {
-      id: "clear",
-      label: "Clear",
-      hint: "deselect everything",
-      build: () => ({}),
-    },
   ];
 
   function pickCats(tax, cats) {
@@ -1579,9 +1573,8 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       if (p.hotFlag && prefs.dataMode === "active") continue;
       const btn = document.createElement("button");
       btn.className = "preset" + (presetMatches(p) ? " on" : "");
-      btn.dataset.preset = p.id;
       btn.title = p.hint;
-      btn.textContent = p.id === "clear" ? "✕ Clear" : p.label;
+      btn.textContent = p.label;
       btn.addEventListener("click", () => applyPreset(p.id));
       wrap.appendChild(btn);
     }
@@ -1721,6 +1714,13 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
       grid.appendChild(card);
     }
+    // "clear" link disables when nothing's selected - feedback that the
+    // action is a no-op rather than letting the user click into nothing.
+    const anySelected = Object.values(prefs.subs || {}).some(
+      (arr) => Array.isArray(arr) && arr.length > 0
+    );
+    const clearBtn = $("btn-clear-cats");
+    if (clearBtn) clearBtn.disabled = !anySelected && prefs.mode !== "hot";
   }
   function updateDeckPoolInfo() {
     const v = VOL_STEPS[prefs.volIdx];
@@ -2400,6 +2400,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("btn-open-deck").addEventListener("click", openDeckModal);
     $("btn-deck-close").addEventListener("click", closeDeckModal);
     $("btn-deck-done").addEventListener("click", closeDeckModal);
+    $("btn-clear-cats").addEventListener("click", () => {
+      bootstrapCustomFromHot();
+      prefs.subs = {};
+      savePrefs();
+      renderPresets();
+      renderDeckGrid();
+      updateDeckPoolInfo();
+    });
     $("deck-modal").addEventListener("click", (e) => {
       if (e.target.id === "deck-modal") closeDeckModal();
     });

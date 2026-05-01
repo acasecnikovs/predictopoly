@@ -945,25 +945,29 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   color: #fff;
 }
 
-/* "Clear" is a utility action, not a category - separated to the right
-   end of the preset row so users trying to start over don't have to scan
-   a row of identical-looking pills. Soft red text gives it an identity
-   hook (different in kind from category toggles); border and background
-   stay neutral so it doesn't read as "danger, will delete your work" -
-   the action is benign, just visually distinct. */
-.preset[data-preset="clear"] {
-  margin-left: auto;
-  color: var(--no);
+/* Category section header: "category" label on the left, "clear" link
+   action on the right. Clear belongs here (next to what it acts on) and
+   not in the presets row above (where it competed visually with the
+   theme presets despite being a different kind of action). */
+.deck-grid-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 0 0.5rem;
 }
-.preset[data-preset="clear"]:hover {
-  border-color: var(--no);
-  color: var(--no);
+.link-btn {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: color 0.1s ease, border-color 0.1s ease;
 }
-/* When Clear is the active preset (everything deselected), fall back to
-   the standard accent treatment - red text on blue fill clashes. */
-.preset[data-preset="clear"].on {
-  color: #fff;
-}
+.link-btn:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.link-btn[disabled] { color: var(--line); cursor: default; }
+.link-btn[disabled]:hover { color: var(--line); border-bottom-color: transparent; }
 
 .deck-grid {
   display: grid;
