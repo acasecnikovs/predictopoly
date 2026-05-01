@@ -955,19 +955,35 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   align-items: baseline;
   margin: 0 0 0.5rem;
 }
+/* Bordered chip rather than a bare text link - the bare link version was
+   invisible even when you were looking for it. The chip sits compactly
+   next to the section label, reads as clickable, and the ✕ glyph
+   carries the meaning at a glance. */
 .link-btn {
   font-size: 0.8125rem;
   color: var(--muted);
-  background: none;
-  border: none;
-  padding: 0;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
   cursor: pointer;
-  border-bottom: 1px solid transparent;
-  transition: color 0.1s ease, border-color 0.1s ease;
+  transition: color 0.1s ease, border-color 0.1s ease, background 0.1s ease;
 }
-.link-btn:hover { color: var(--accent); border-bottom-color: var(--accent); }
-.link-btn[disabled] { color: var(--line); cursor: default; }
-.link-btn[disabled]:hover { color: var(--line); border-bottom-color: transparent; }
+.link-btn:hover {
+  color: var(--text);
+  border-color: var(--muted);
+  background: var(--line-soft);
+}
+.link-btn[disabled] {
+  color: var(--line);
+  border-color: var(--line-soft);
+  cursor: default;
+}
+.link-btn[disabled]:hover {
+  color: var(--line);
+  border-color: var(--line-soft);
+  background: var(--bg);
+}
 
 .deck-grid {
   display: grid;
