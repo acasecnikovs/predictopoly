@@ -959,6 +959,11 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   border-color: var(--no);
   color: var(--no);
 }
+/* When Clear is the active preset (everything deselected), fall back to
+   the standard accent treatment - red text on blue fill clashes. */
+.preset[data-preset="clear"].on {
+  color: #fff;
+}
 
 .deck-grid {
   display: grid;
