@@ -945,24 +945,19 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   color: #fff;
 }
 
-/* "Clear" is a utility action, not a category - visually distinct so users
-   trying to start over don't have to scan a row of identical-looking pills.
-   Right-aligned via margin-left:auto (last flex child); soft danger tint
-   with --no to mirror the Reset Everything button's treatment. */
+/* "Clear" is a utility action, not a category - separated to the right
+   end of the preset row so users trying to start over don't have to scan
+   a row of identical-looking pills. Visual treatment stays neutral:
+   it's a benign reset, not destructive, no need for a danger color. */
 .preset[data-preset="clear"] {
   margin-left: auto;
-  color: var(--no);
-  border-color: rgba(214, 69, 69, 0.35);
+  color: var(--text);
+  background: var(--bg-soft);
 }
 .preset[data-preset="clear"]:hover {
-  background: rgba(214, 69, 69, 0.08);
-  border-color: var(--no);
-  color: var(--no);
-}
-.preset[data-preset="clear"].on {
-  background: var(--no);
-  border-color: var(--no);
-  color: #fff;
+  border-color: var(--muted);
+  background: var(--line-soft);
+  color: var(--text);
 }
 
 .deck-grid {
