@@ -947,17 +947,17 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
 
 /* "Clear" is a utility action, not a category - separated to the right
    end of the preset row so users trying to start over don't have to scan
-   a row of identical-looking pills. Visual treatment stays neutral:
-   it's a benign reset, not destructive, no need for a danger color. */
+   a row of identical-looking pills. Soft red text gives it an identity
+   hook (different in kind from category toggles); border and background
+   stay neutral so it doesn't read as "danger, will delete your work" -
+   the action is benign, just visually distinct. */
 .preset[data-preset="clear"] {
   margin-left: auto;
-  color: var(--text);
-  background: var(--bg-soft);
+  color: var(--no);
 }
 .preset[data-preset="clear"]:hover {
-  border-color: var(--muted);
-  background: var(--line-soft);
-  color: var(--text);
+  border-color: var(--no);
+  color: var(--no);
 }
 
 .deck-grid {
