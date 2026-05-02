@@ -45,9 +45,9 @@ button {
 h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
 h2 { font-size: 1.25rem; color: var(--accent); }
 h3 {
-  font-size: 0.75rem; color: var(--muted);
+  font-size: 0.875rem; color: var(--text);
   text-transform: uppercase; letter-spacing: 0.08em;
-  font-weight: 500; margin: 2.25rem 0 0.5rem;
+  font-weight: 600; margin: 2.25rem 0 0.5rem;
 }
 
 p { margin: 0 0 1rem; }
@@ -1394,21 +1394,20 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
 .archive-revisit {
   font: inherit;
-  font-size: 0.8rem;
-  font-weight: 500;
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 1px solid var(--accent-line);
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
   border-radius: 4px;
-  padding: 0.3rem 0.7rem;
+  padding: 0.4rem 0.85rem;
   cursor: pointer;
   margin-left: auto;
-  transition: color 0.1s ease, border-color 0.1s ease, background 0.1s ease;
+  transition: background 0.1s ease, border-color 0.1s ease;
 }
 .archive-revisit:hover {
-  color: #fff;
-  border-color: var(--accent);
-  background: var(--accent);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .archive-more-row { margin: 1rem 0 0; text-align: center; }
