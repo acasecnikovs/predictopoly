@@ -16,6 +16,13 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // resolution-checker upgrades entries to scored history records once the
   // market closes. Until then they're "pending" and carry no points.
   const LS_PENDING = "predictopoly.pending.v1";
+  // Set of prediction-record keys the user has explicitly marked "revisited"
+  // in the Stats > Where the market knew better section. Filtered out before
+  // the top-5 cut so the next-biggest miss surfaces in its place. Persistent
+  // forever - once you've consumed the educational value of a row, it stays
+  // hidden even if a later prediction with a smaller gap would have displaced
+  // it. Cleared by both resetAll and resetEverything.
+  const LS_REVISITED = "predictopoly.revisited.v1";
   // Anonymous device id, generated once and stashed in localStorage. Sent
   // with every prediction so we can answer "is the same device coming back"
   // and "how many predictions per user" server-side. No PII, never leaves
@@ -147,6 +154,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   let descsReady = false;
   let history   = loadHistory();
   let pending   = loadPending();
+  let revisited = loadRevisited();
   let prefs     = loadPrefs();
   let current   = null;     // currently displayed market
   let chart     = null;     // chart.js instance
@@ -187,6 +195,20 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     catch { return []; }
   }
   function savePending() { localStorage.setItem(LS_PENDING, JSON.stringify(pending)); }
+
+  function loadRevisited() {
+    try { return new Set(JSON.parse(localStorage.getItem(LS_REVISITED) || "[]")); }
+    catch { return new Set(); }
+  }
+  function saveRevisited() {
+    localStorage.setItem(LS_REVISITED, JSON.stringify(Array.from(revisited)));
+  }
+  // Stable per-record key. A user can predict on the same market id more than
+  // once across active->resolved rollups; pairing id with submit timestamp
+  // keeps each record individually addressable.
+  function revisitedKeyFor(rec) {
+    return `${rec.id || ""}::${rec.t || ""}`;
+  }
 
   // Resolved and active have different taxonomies (and active doesn't support
   // hot/edition picks), so each dataMode owns its own deck state. We keep the
@@ -1904,6 +1926,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   function renderBiggestMisses(hist) {
     const section = $("biggest-misses-section");
     const list = $("biggest-misses");
+    const counter = $("biggest-misses-counter");
     if (!section || !list) return;
 
     const withMkt = hist.filter((r) => {
@@ -1913,6 +1936,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (withMkt.length < MARKET_GAP_MIN_N) {
       section.classList.add("hidden");
       list.innerHTML = "";
+      if (counter) counter.textContent = "";
       return;
     }
 
@@ -1926,12 +1950,33 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (annotated.length === 0) {
       section.classList.add("hidden");
       list.innerHTML = "";
+      if (counter) counter.textContent = "";
       return;
     }
 
-    annotated.sort((a, b) => b.gap - a.gap);
+    // Drop entries the user has already marked revisited so the next
+    // biggest gap surfaces in its place. If the queue is exhausted (every
+    // candidate consumed), hide the section - "good for you, you've read
+    // them all" is the right outcome, not an empty header.
+    const remaining = annotated.filter((x) => !revisited.has(revisitedKeyFor(x.rec)));
+    if (remaining.length === 0) {
+      section.classList.add("hidden");
+      list.innerHTML = "";
+      if (counter) counter.textContent = "";
+      return;
+    }
+
+    remaining.sort((a, b) => b.gap - a.gap);
     section.classList.remove("hidden");
-    list.innerHTML = annotated.slice(0, 5).map((x) => archiveRowHtml(x.rec)).join("");
+    const TOP = 5;
+    const shownRows = remaining.slice(0, TOP);
+    const more = remaining.length - shownRows.length;
+    list.innerHTML = shownRows.map((x) => archiveRowHtml(x.rec, { revisitable: true })).join("");
+    if (counter) {
+      counter.textContent = more > 0
+        ? `${shownRows.length} shown · ${more} more queued`
+        : "";
+    }
   }
 
   // ------- archive (recent predictions list) -------
@@ -1951,7 +1996,8 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     return slugs[rec.id] || slugsActive[rec.id] || null;
   }
 
-  function archiveRowHtml(rec) {
+  function archiveRowHtml(rec, opts) {
+    const showRevisit = !!(opts && opts.revisitable);
     const o = rec.o;
     const youPct = Math.round(rec.p * 100);
     // "Right" if the side they leaned >50% toward matched the outcome. A
@@ -1989,6 +2035,13 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       ? `<span class="archive-mkt">market said ${mpTxt}</span>`
       : "";
 
+    const revisitBtn = showRevisit
+      ? `<button type="button" class="archive-revisit" data-revisit-key="${escapeHtml(revisitedKeyFor(rec))}" title="Mark as revisited - hides this row and surfaces the next biggest miss in its place">mark revisited</button>`
+      : "";
+    const footHtml = (linkHtml || revisitBtn)
+      ? `<div class="archive-foot">${linkHtml}${revisitBtn}</div>`
+      : "";
+
     return `
       <article class="archive-row archive-${leanCls}">
         <header class="archive-row-head">
@@ -2002,7 +2055,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
           <span class="archive-outcome ${outcomeCls}">${escapeHtml(outcomeTxt)}</span>
           <span class="archive-pts ${ptsCls}">${fmtPts(pts)} pts</span>
         </div>
-        ${linkHtml ? `<div class="archive-foot">${linkHtml}</div>` : ""}
+        ${footHtml}
       </article>
     `;
   }
@@ -2149,6 +2202,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (!confirm("Clear all your predictions? This cannot be undone.")) return;
     history = [];
     saveHistory();
+    // Revisited keys point at history records that no longer exist; wipe so
+    // the section starts fresh once enough new predictions accumulate.
+    revisited = new Set();
+    saveRevisited();
     renderSession();
     renderDeckStrip();
     renderStats();
@@ -2169,6 +2226,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       localStorage.removeItem(LS_PREFS);
       localStorage.removeItem(LS_ONBOARD);
       localStorage.removeItem(LS_SID);
+      localStorage.removeItem(LS_REVISITED);
       sessionStorage.clear();
     } catch { /* ignore - private mode etc., reload still helps */ }
     location.reload();
@@ -2458,6 +2516,23 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     $("btn-reset").addEventListener("click", resetAll);
     const resetAllBtn = $("btn-reset-all");
     if (resetAllBtn) resetAllBtn.addEventListener("click", resetEverything);
+
+    // "Where the market knew better" - per-row "mark revisited" delegation.
+    // Stops the queue from staying frozen at the same five entries forever:
+    // mark a row, the next biggest miss takes its slot, counter shows how
+    // many candidates are still queued.
+    const missesList = $("biggest-misses");
+    if (missesList) {
+      missesList.addEventListener("click", (e) => {
+        const btn = e.target.closest(".archive-revisit");
+        if (!btn) return;
+        const key = btn.dataset.revisitKey;
+        if (!key) return;
+        revisited.add(key);
+        saveRevisited();
+        renderBiggestMisses(statsHistory());
+      });
+    }
 
     // Tap-to-toggle tooltips. Hover-capable devices already get them via
     // :hover, but @media (hover: none) hides ::after entirely on touch,
