@@ -836,7 +836,7 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
 }
 .pattern-verdict.hidden { display: none; }
 
-.biggest-misses-section { margin-top: 0.5rem; }
+.biggest-misses-section { margin-top: 2.25rem; }
 .biggest-misses-section.hidden { display: none; }
 .biggest-misses-head {
   display: flex;
@@ -1394,20 +1394,21 @@ footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
 .archive-revisit {
   font: inherit;
-  font-size: inherit;
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
   border-radius: 4px;
-  padding: 0.2rem 0.55rem;
+  padding: 0.3rem 0.7rem;
   cursor: pointer;
   margin-left: auto;
   transition: color 0.1s ease, border-color 0.1s ease, background 0.1s ease;
 }
 .archive-revisit:hover {
-  color: var(--accent);
+  color: #fff;
   border-color: var(--accent);
-  background: var(--accent-soft);
+  background: var(--accent);
 }
 
 .archive-more-row { margin: 1rem 0 0; text-align: center; }
