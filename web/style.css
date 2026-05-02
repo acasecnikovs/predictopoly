@@ -865,8 +865,8 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
 .by-cat .row .pts { font-variant-numeric: tabular-nums; }
 .by-cat .row .pts.pos { color: var(--yes); }
 .by-cat .row .pts.neg { color: var(--no); }
-.by-cat .row .brier { color: var(--muted); font-variant-numeric: tabular-nums; }
-.by-cat .row .n { color: var(--dim); font-variant-numeric: tabular-nums; min-width: 32px; text-align: right; }
+.by-cat .row .brier { color: var(--text); font-variant-numeric: tabular-nums; }
+.by-cat .row .n { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 32px; text-align: right; }
 
 .reset-row {
   margin-top: 2.5rem;
