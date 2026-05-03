@@ -275,14 +275,21 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     fullMarketsPromise = (async () => {
       try {
         const res = await fetch(`data/markets.json?v=${DATA_V}`);
-        if (!res.ok) return false;
+        if (!res.ok) throw new Error(`markets.json ${res.status}`);
         const full = await res.json();
         // Preserve any session-only state by replacing wholesale; ids are stable.
         marketsResolved = full;
         marketsAreFastPack = false;
         if (prefs.dataMode === "resolved") markets = marketsResolved;
         return true;
-      } catch {
+      } catch (e) {
+        // Crucially: clear the cached promise on failure so the next caller
+        // (deck modal reopen, nextQuestion empty-fallback, Stats visit) gets
+        // a fresh fetch instead of the stuck false. Without this, one flaky
+        // network blip on the initial 1.3 MB load wedges the user in fast-pack
+        // mode forever - empty-deck after exhausting hot picks even when they
+        // switch to "All".
+        fullMarketsPromise = null;
         return false;
       }
     })();
