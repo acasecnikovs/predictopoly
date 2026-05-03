@@ -847,7 +847,11 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
 }
 .biggest-misses-head h3 { margin: 0; }
 .biggest-misses-counter:empty { display: none; }
-.biggest-misses-counter { font-variant-numeric: tabular-nums; }
+.biggest-misses-counter {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  font-weight: 500;
+}
 
 .by-cat {
   display: flex; flex-direction: column;
