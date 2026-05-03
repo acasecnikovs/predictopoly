@@ -43,6 +43,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
 
   const VOL_STEPS  = [0, 100, 1000, 10000, 100000, 1000000];
+  const VALID_SORTS = ["random", "end-asc", "end-desc"];
 
   // Canonical display order for categories. Both modes use this so toggling
   // between Resolved and Active doesn't shuffle the deck modal cards. Any
@@ -222,7 +223,6 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       ? { mode: "custom", subs: null }   // active has no hot pack; null subs = "All"
       : { mode: "hot",    subs: null };  // resolved first-visit = curated edition picks
   }
-  const VALID_SORTS = ["random", "end-asc", "end-desc"];
   function loadPrefs() {
     try {
       const p = JSON.parse(localStorage.getItem(LS_PREFS) || "{}");
