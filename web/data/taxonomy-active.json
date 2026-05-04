@@ -2,171 +2,147 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 1322
-    },
-    {
-      "sub": "Other Sports",
-      "n": 224
-    },
-    {
-      "sub": "eSports",
-      "n": 187
+      "n": 1019
     },
     {
       "sub": "Tennis",
-      "n": 178
+      "n": 392
     },
     {
-      "sub": "NHL",
-      "n": 113
+      "sub": "Other Sports",
+      "n": 221
     },
     {
-      "sub": "F1 & Motorsport",
-      "n": 107
+      "sub": "eSports",
+      "n": 197
     },
     {
       "sub": "NBA",
-      "n": 77
+      "n": 105
+    },
+    {
+      "sub": "NHL",
+      "n": 99
     },
     {
       "sub": "MLB",
-      "n": 67
+      "n": 55
+    },
+    {
+      "sub": "F1 & Motorsport",
+      "n": 53
     },
     {
       "sub": "Combat Sports",
-      "n": 20
-    },
-    {
-      "sub": "Counter-Strike",
-      "n": 10
-    },
-    {
-      "sub": "Dota 2",
-      "n": 8
-    },
-    {
-      "sub": "LoL",
-      "n": 7
-    },
-    {
-      "sub": "Valorant",
-      "n": 4
-    },
-    {
-      "sub": "NFL",
-      "n": 3
-    },
-    {
-      "sub": "Mobile Legends Bang Bang",
-      "n": 3
+      "n": 37
     }
   ],
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 333
+      "n": 396
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 315
+      "n": 288
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 319
+      "n": 338
     },
     {
       "sub": "Celebrity & Events",
-      "n": 289
+      "n": 240
     },
     {
       "sub": "Movies, TV & Awards",
-      "n": 181
+      "n": 166
     },
     {
       "sub": "Social Media",
-      "n": 21
+      "n": 17
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Financial Markets",
-      "n": 374
+      "n": 454
     },
     {
       "sub": "Macroeconomics",
-      "n": 130
+      "n": 117
     },
     {
       "sub": "Monetary Policy",
-      "n": 75
+      "n": 81
     }
   ],
   "US Politics": [
     {
       "sub": "Nominations & Primaries",
-      "n": 288
+      "n": 328
     },
     {
       "sub": "Policy & Governance",
-      "n": 265
+      "n": 227
     },
     {
       "sub": "Appointments",
-      "n": 18
+      "n": 15
     },
     {
       "sub": "Presidential Elections",
-      "n": 2
+      "n": 7
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 537
+      "n": 534
     },
     {
       "sub": "Protocol & Launches",
-      "n": 16
+      "n": 20
     },
     {
       "sub": "Price Predictions",
-      "n": 7
+      "n": 15
     },
     {
       "sub": "Crypto Regulation",
-      "n": 2
+      "n": 1
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 210
+      "n": 228
     },
     {
       "sub": "Tech Companies",
-      "n": 22
+      "n": 64
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 12
+      "n": 11
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
-      "n": 1516
+      "n": 1171
     },
     {
       "sub": "Health & Science",
-      "n": 18
+      "n": 19
     },
     {
       "sub": "Space",
-      "n": 3
+      "n": 6
     }
   ]
 }
