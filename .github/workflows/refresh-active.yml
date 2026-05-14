@@ -108,13 +108,21 @@ jobs:
           print(f"OK: {len(m)} markets, {len(tax)} categories, {live_band} in live band")
           PY
 
-      - name: Bump DATA_V to short SHA
+      - name: Bump cache-bust SHAs (app.js DATA_V + index.html script tag)
         run: |
           SHA=$(git rev-parse --short HEAD)
-          # In-place sed: const DATA_V = "..." -> const DATA_V = "<sha>"
-          # Trailing semicolon kept. Single line so anchor is unique.
+          # 1) DATA_V inside app.js is used as ?v= on every data JSON fetch.
+          #    Trailing semicolon kept. Single line so anchor is unique.
           sed -i 's|const DATA_V = "[^"]*";|const DATA_V = "'"$SHA"'";|' web/app.js
           grep -n "const DATA_V" web/app.js
+          # 2) <script src="app.js?v=N"> in index.html. Without this bump the
+          #    browser keeps the cached app.js (and its stale DATA_V), which
+          #    then fetches stale data JSON. Was manually nudged by humans for
+          #    months while the daily refresh quietly drifted on returning
+          #    users' clients. Auto-bump to the same SHA so cache-busting is
+          #    coupled to the data refresh.
+          sed -i 's|app\.js?v=[^"]*"|app.js?v='"$SHA"'"|' web/index.html
+          grep -n 'app\.js?v=' web/index.html
 
       - name: Diff gate + commit
         run: |
@@ -126,8 +134,8 @@ jobs:
           # entirely. Avoids 30 noisy commits/month when nothing's moving.
           if git diff --quiet web/data/markets-active.json; then
               echo "No deck changes; skipping commit."
-              # Revert DATA_V bump so we don't ship a sha-only change.
-              git checkout -- web/app.js
+              # Revert the SHA bumps so we don't ship a sha-only change.
+              git checkout -- web/app.js web/index.html
               exit 0
           fi
 
@@ -138,6 +146,7 @@ jobs:
                   web/data/slugs-active.json \
                   web/data/taxonomy-active.json \
                   web/data/descriptions-active.json \
-                  web/app.js
+                  web/app.js \
+                  web/index.html
           git commit -m "[bot] daily refresh ${DATE} - ${MARKETS_COUNT} markets"
           git push origin HEAD:main
