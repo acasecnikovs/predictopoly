@@ -116,9 +116,13 @@ def fetch_open_markets(
         except HTTPError as e:
             # Gamma 500s mid-pagination = the per-query cap, not a transient
             # blip. Flag capped=True and bail; the caller will split the
-            # date range and recurse. Below 5xx (e.g. 4xx that wasn't 400)
-            # is genuine and we re-raise.
-            if e.code >= 500:
+            # date range and recurse. 422 (Unprocessable Entity) shows up
+            # the same way - confirmed 2026-04-27/28/29 and 2026-05-15:
+            # /markets returns 422 on every attempt for several minutes,
+            # then recovers. Treat it as cap-equivalent so adaptive split
+            # gets a chance instead of nuking the whole run. Below 4xx
+            # (e.g. 401, 404) is genuine and we re-raise.
+            if e.code >= 500 or e.code == 422:
                 print(
                     f"  gamma {e.code} at offset={offset} after {page} pages, "
                     f"window {end_date_min}..{end_date_max} - flagging capped",

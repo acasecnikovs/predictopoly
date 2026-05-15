@@ -116,7 +116,8 @@ def fetch_window_adaptive(start: datetime, end: datetime, depth: int = 0) -> lis
                 pivot = datetime.fromisoformat(last_end_str.replace("Z", "+00:00"))
             except ValueError:
                 pivot = None
-    if pivot is None or pivot <= start or pivot >= end:
+    pivot_from_batch = pivot is not None and start < pivot < end
+    if not pivot_from_batch:
         pivot = start + (end - start) / 2
 
     print(
@@ -124,10 +125,18 @@ def fetch_window_adaptive(start: datetime, end: datetime, depth: int = 0) -> lis
         f"(depth {depth}, got {len(batch)} so far)",
         file=sys.stderr,
     )
-    # Left half is already covered by `batch` up to pivot. Only re-fetch the
-    # right half, which is the part gamma refused.
+    # If pivot came from the last fetched row, the left half [start, pivot]
+    # is already covered by `batch` and we only need the right half.
+    # If pivot is a synthetic midpoint (empty batch or unusable endDate),
+    # we have zero coverage and need to recurse on both halves. This case
+    # hits when gamma refuses the very first page of the window (e.g. 422
+    # at offset=0) - without splitting left too, the left half silently
+    # vanishes from the deck.
     right = fetch_window_adaptive(pivot, end, depth + 1)
-    return batch + right
+    if pivot_from_batch:
+        return batch + right
+    left = fetch_window_adaptive(start, pivot, depth + 1)
+    return left + right
 
 
 def fetch_all_active(now: datetime, max_days: float) -> list[dict]:
