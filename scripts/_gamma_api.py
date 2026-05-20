@@ -2,13 +2,15 @@
 
 predictopoly's daily refresh runs in GitHub Actions where the polymarket-bot
 sibling repo isn't available. Rather than make polymarket-bot a pip dep or a
-submodule, we copy the two functions 07_fetch_active.py actually uses
-(fetch_open_markets, parse_clob_tokens) plus their shared _get helper.
+submodule, we copy the functions the daily pipeline actually uses:
+  - fetch_open_markets, parse_clob_tokens (used by 07_fetch_active.py)
+  - fetch_market, fetch_price_at_time     (used by 10_promote_resolved.py)
+plus the shared _get helper.
 
 Forked from polymarket-bot upstream commit at the time of vendoring (April
-2026). If we ever want price-history or single-market fetches, port them
-deliberately rather than re-pointing at the upstream - predictopoly should
-not silently inherit upstream behavior changes.
+2026). Ported fetch_market + fetch_price_at_time 2026-05-21 for the
+resolved-promotion path. Each port is deliberate - predictopoly should not
+silently inherit upstream behavior changes.
 
 Read-only. No wallet, no auth.
 """
@@ -24,6 +26,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 GAMMA = "https://gamma-api.polymarket.com"
+CLOB = "https://clob.polymarket.com"
 
 _UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -165,3 +168,41 @@ def parse_clob_tokens(m: dict) -> tuple[str | None, str | None]:
     if not tokens or len(tokens) < 2:
         return None, None
     return tokens[0], tokens[1]
+
+
+def fetch_market(market_id: str) -> dict | None:
+    """Single market detail. Used by 10_promote_resolved.py to confirm a
+    just-expired market actually resolved with a clear outcome before
+    appending it to the past deck. Returns None on hard 4xx (market deleted)
+    so the caller can skip rather than blow up."""
+    r = _get(GAMMA, f"/markets/{market_id}")
+    return r if isinstance(r, dict) else None
+
+
+def fetch_price_at_time(yes_token: str, target_unix: int,
+                        window_sec: int = 2 * 86400,
+                        fidelity_min: int = 60) -> float | None:
+    """Fetch YES price closest to target_unix from CLOB price history.
+
+    CLOB rejects windows wider than about a week, so we query target plus or
+    minus window_sec (default 2 days) at hourly fidelity and pick the closest
+    sample. Returns None if nothing in the window (market hadn't started
+    trading yet, or token wrong). Used by 10_promote_resolved.py to backfill
+    T-1d/T-7d/T-30d lookback prices when a new market is promoted to the
+    resolved deck.
+    """
+    if not yes_token:
+        return None
+    data = _get(CLOB, "/prices-history", {
+        "market": yes_token,
+        "startTs": target_unix - window_sec,
+        "endTs": target_unix + window_sec,
+        "fidelity": fidelity_min,
+    })
+    if not data:
+        return None
+    hist = data.get("history", [])
+    if not hist:
+        return None
+    closest = min(hist, key=lambda h: abs(h["t"] - target_unix))
+    return float(closest["p"])

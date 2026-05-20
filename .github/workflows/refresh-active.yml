@@ -62,6 +62,21 @@ jobs:
           restore-keys: |
             predictopoly-active-pipeline-
 
+      - name: Promote just-closed actives into past deck (10)
+        # MUST run before 07: 10 reads the previous run's
+        # active_markets_classified.parquet to find what's expired since
+        # yesterday, then 07 overwrites it with the new active set.
+        # Non-fatal on failure - a gamma flap shouldn't block the daily
+        # active refresh. Worst case the missed markets get promoted tomorrow.
+        run: |
+          set +e
+          python scripts/10_promote_resolved.py
+          rc=$?
+          if [ $rc -ne 0 ]; then
+            echo "::warning::10_promote_resolved failed (rc=$rc); continuing with active refresh anyway"
+          fi
+          exit 0
+
       - name: Fetch active markets (07)
         # Two-level retry: _gamma_api.py handles per-request flaps (6 attempts,
         # exp backoff, ~5 min). This wrapper catches the case where gamma is
@@ -87,6 +102,21 @@ jobs:
 
       - name: Export to web bundle (09)
         run: python scripts/09_export_active_for_web.py
+
+      - name: Re-export past deck (03) if promotions happened
+        # Only useful when 10 actually appended rows. We detect that by
+        # checking whether either of the two source parquets changed in
+        # the working tree relative to HEAD. If yes, regenerate markets.json
+        # + descriptions-*.json + slugs.json + taxonomy.json. If no, skip -
+        # past bundle doesn't need a rebuild on quiet days.
+        run: |
+          if git diff --quiet data/resolved_markets_classified.parquet \
+                              data/lookback_prices.parquet \
+                              data/descriptions.jsonl; then
+            echo "No promotions; skipping past-deck re-export."
+            exit 0
+          fi
+          python scripts/03_export_for_web.py
 
       - name: Smoke check
         run: |
@@ -130,23 +160,49 @@ jobs:
           git config user.name "predictopoly-bot"
           git config user.email "bot@predictopoly.local"
 
-          # If markets-active.json hasn't changed in content, skip the commit
-          # entirely. Avoids 30 noisy commits/month when nothing's moving.
-          if git diff --quiet web/data/markets-active.json; then
-              echo "No deck changes; skipping commit."
-              # Revert the SHA bumps so we don't ship a sha-only change.
+          # If neither active deck nor past deck changed, skip the commit.
+          # Past deck is checked via the source parquets so we don't have to
+          # rebuild markets.json just to diff it.
+          ACTIVE_CHANGED=0
+          PAST_CHANGED=0
+          git diff --quiet web/data/markets-active.json || ACTIVE_CHANGED=1
+          git diff --quiet data/resolved_markets_classified.parquet \
+                          data/lookback_prices.parquet \
+                          data/descriptions.jsonl || PAST_CHANGED=1
+          if [ $ACTIVE_CHANGED -eq 0 ] && [ $PAST_CHANGED -eq 0 ]; then
+              echo "No deck changes (active or past); skipping commit."
               git checkout -- web/app.js web/index.html
               exit 0
           fi
 
           MARKETS_COUNT=$(python -c 'import json; print(len(json.load(open("web/data/markets-active.json"))))')
+          PAST_COUNT=$(python -c 'import json; print(len(json.load(open("web/data/markets.json"))))')
           DATE=$(date -u +%Y-%m-%d)
 
+          # Always add the active bundle + cache-bust SHAs. Past deck files
+          # are conditionally added: parquets and web bundle only when a
+          # promotion actually happened, otherwise git add would no-op them
+          # (they're unchanged) and that's fine, harmless.
           git add web/data/markets-active.json \
                   web/data/slugs-active.json \
                   web/data/taxonomy-active.json \
                   web/data/descriptions-active.json \
                   web/app.js \
                   web/index.html
-          git commit -m "[bot] daily refresh ${DATE} - ${MARKETS_COUNT} markets"
+          if [ $PAST_CHANGED -eq 1 ]; then
+              git add data/resolved_markets_classified.parquet \
+                      data/lookback_prices.parquet \
+                      data/descriptions.jsonl \
+                      web/data/markets.json \
+                      web/data/slugs.json \
+                      web/data/taxonomy.json \
+                      web/data/descriptions-0.json \
+                      web/data/descriptions-1.json \
+                      web/data/descriptions-2.json \
+                      web/data/descriptions-3.json
+              MSG="[bot] daily refresh ${DATE} - ${MARKETS_COUNT} active, ${PAST_COUNT} past"
+          else
+              MSG="[bot] daily refresh ${DATE} - ${MARKETS_COUNT} markets"
+          fi
+          git commit -m "$MSG"
           git push origin HEAD:main
