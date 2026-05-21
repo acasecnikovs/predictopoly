@@ -62,6 +62,16 @@ OUTCOME_CONFIDENCE = 0.99
 # tomorrow's run picks up the rest (still ordered by endDate ascending).
 MAX_PROMOTE_PER_RUN = 500
 
+# Filters to match the 2026-04-24 seed's de facto quality bar:
+#   - duration >= 7 days (seed median is 7.2 days; below 7d is reactive
+#     news/sports/daily-candle territory, useless for calibration training)
+#   - volume >= $5000 (seed P25 is ~$5500; below that, the market wasn't
+#     genuinely traded enough for its prices to be informative)
+# Together these match what a forecasting-oriented past deck looks like
+# without inheriting Polymarket's recent explosion of casino-style markets.
+MIN_DURATION_HOURS = 168.0  # 7 days
+MIN_VOLUME = 9000.0
+
 
 def _parse_iso(s):
     if not s:
@@ -171,9 +181,15 @@ def main():
     # Stable ordering: expired oldest-first, so a multi-day backlog promotes
     # the staler half first and the cap clips the freshest tail.
     active["_end_parsed"] = active["endDate"].map(_parse_iso)
+    active["_start_parsed"] = active["startDate"].map(_parse_iso)
+    active["_duration_h"] = (
+        (active["_end_parsed"] - active["_start_parsed"]).dt.total_seconds() / 3600
+    )
     expired = active[active["_end_parsed"].notna()
                      & (active["_end_parsed"] < now)
-                     & (~active["id"].astype(str).isin(already))]
+                     & (~active["id"].astype(str).isin(already))
+                     & (active["_duration_h"] >= MIN_DURATION_HOURS)
+                     & (active["volume"].astype(float) >= MIN_VOLUME)]
     expired = expired.sort_values("_end_parsed").head(MAX_PROMOTE_PER_RUN)
 
     if len(expired) == 0:
