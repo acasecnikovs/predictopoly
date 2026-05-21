@@ -641,8 +641,11 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   }
   // Markets resolved within this window are too fresh to be reliably forgotten -
   // the user might just remember the news outcome instead of reasoning from priors.
-  // 60 days catches "this month's headlines" without being overaggressive.
-  const HINDSIGHT_DAYS = 60;
+  // 14 days catches "this week's headlines"; past that, news cycle has moved on
+  // for most categories. Shortened from 60d on 2026-05-21 - the original guard
+  // was paternalistic for serious users (they calibrate on active mode anyway)
+  // and hid 12,804 freshly-backfilled markets that would otherwise be available.
+  const HINDSIGHT_DAYS = 14;
   function isHindsightSpoiler(m) {
     if (!m.t) return false;
     const days = (Date.now() - new Date(m.t).getTime()) / 86400000;
