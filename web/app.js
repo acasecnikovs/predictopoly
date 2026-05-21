@@ -227,18 +227,21 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     try {
       const p = JSON.parse(localStorage.getItem(LS_PREFS) || "{}");
       const vi = p.volIdx ?? 4;
-      const dm = p.dataMode === "active" ? "active" : "resolved";
+      // First-visit default flipped from resolved -> active on 2026-05-21.
+      // Live markets are the actual calibration product; past mode is now
+      // explicit warmup. Returning users keep whatever they had.
+      const dm = p.dataMode ? (p.dataMode === "resolved" ? "resolved" : "active") : "active";
       const decks = (p._decks && typeof p._decks === "object") ? p._decks : {};
       const sort = VALID_SORTS.includes(p.sort) ? p.sort : "random";
       return {
-        mode: p.mode || "hot",       // "hot" = curated allowlist, "custom" = subs-based
+        mode: p.mode || "custom",    // "hot" = curated allowlist, "custom" = subs-based
         subs: p.subs || null,
         volIdx: Math.max(0, Math.min(VOL_STEPS.length - 1, vi)),
         dataMode: dm,                // "resolved" | "active"
         sort,                        // "random" | "end-asc" | "end-desc"
         _decks: decks,               // { resolved?: {mode, subs}, active?: {mode, subs} }
       };
-    } catch { return { mode: "hot", subs: null, volIdx: 4, dataMode: "resolved", sort: "random", _decks: {} }; }
+    } catch { return { mode: "custom", subs: null, volIdx: 4, dataMode: "active", sort: "random", _decks: {} }; }
   }
   function savePrefs() { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); }
 
@@ -661,10 +664,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       // (curation is resolved-only). Volume + sub selection same as resolved.
       const minVol = VOL_STEPS[prefs.volIdx];
       if ((m.v || 0) < minVol) return false;
-      // In active mode, an empty selection means "show everything" instead
-      // of nothing - fresh users haven't picked subs and shouldn't hit a
-      // dead deck. The deck modal is the way to narrow down.
+      // In active mode, an empty selection means "show everything except
+      // the noise categories" rather than literal everything. Sports has
+      // 2.6k+ per-event lines that drown the signal feed; Soundbites and
+      // Celebrity & Events are gossipy and read like trivia not forecasts.
+      // Users who actually want them can pick them via the deck modal.
       if (!prefs.subs || Object.keys(prefs.subs).every(k => !(prefs.subs[k] || []).length)) {
+        if (m.c === "Sports") return false;
+        if (m.c === "Culture & Media" && (m.s === "Soundbites" || m.s === "Celebrity & Events")) return false;
         return true;
       }
       return isSelected(m.c, m.s);
