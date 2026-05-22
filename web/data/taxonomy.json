@@ -2,57 +2,69 @@
   "US Politics": [
     {
       "sub": "Policy & Governance",
-      "n": 1814
+      "n": 4050
     },
     {
       "sub": "Presidential Elections",
-      "n": 1230
+      "n": 1651
     },
     {
       "sub": "Nominations & Primaries",
-      "n": 833
+      "n": 872
     },
     {
       "sub": "Appointments",
-      "n": 126
+      "n": 244
+    },
+    {
+      "sub": "Miscellaneous",
+      "n": 67
+    },
+    {
+      "sub": "Unclassified",
+      "n": 58
+    },
+    {
+      "sub": "International Relations & Conflicts",
+      "n": 1
     }
   ],
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 7675
+      "n": 7293
     },
     {
       "sub": "Other Sports",
-      "n": 4101
+      "n": 3807
     },
     {
       "sub": "NBA",
-      "n": 3564
-    },
-    {
-      "sub": "NFL",
-      "n": 2056
+      "n": 3506
     },
     {
       "sub": "Tennis",
       "n": 2026
     },
     {
+      "sub": "NFL",
+      "n": 1997
+    },
+    {
       "sub": "NHL",
-      "n": 1424
+      "n": 1414
     },
     {
       "sub": "MLB",
       "n": 1190
     },
     {
-      "sub": "eSports",
-      "n": 625
+      "sub": "Combat Sports",
+      "n": 592
     },
     {
-      "sub": "Combat Sports",
-      "n": 594
+      "sub": "eSports",
+      "n": 569
     },
     {
       "sub": "F1 & Motorsport",
@@ -60,109 +72,379 @@
     },
     {
       "sub": "Olympics & Multi-sport",
-      "n": 275
+      "n": 272
+    },
+    {
+      "sub": "College sports",
+      "n": 171
+    },
+    {
+      "sub": "NCAA Basketball",
+      "n": 76
+    },
+    {
+      "sub": "WNBA",
+      "n": 16
     },
     {
       "sub": "Basketball",
       "n": 16
+    },
+    {
+      "sub": "Golf",
+      "n": 2
+    },
+    {
+      "sub": "Boxing",
+      "n": 1
+    },
+    {
+      "sub": "NCAA",
+      "n": 1
     }
   ],
   "World Politics": [
     {
       "sub": "International Relations & Conflicts",
-      "n": 1410
+      "n": 1419
     },
     {
       "sub": "Non-US Elections",
-      "n": 1375
+      "n": 1372
+    },
+    {
+      "sub": "Global Soccer",
+      "n": 259
+    },
+    {
+      "sub": "Foreign leadership changes",
+      "n": 36
+    },
+    {
+      "sub": "Military actions",
+      "n": 15
+    },
+    {
+      "sub": "Foreign Leadership Changes",
+      "n": 4
+    },
+    {
+      "sub": "Policy & Governance",
+      "n": 4
+    },
+    {
+      "sub": "Miscellaneous",
+      "n": 4
+    },
+    {
+      "sub": "Economy & Finance",
+      "n": 1
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4119
+      "n": 4585
     }
   ],
   "Crypto": [
     {
-      "sub": "Speculation",
-      "n": 1353
+      "sub": "Price Predictions",
+      "n": 1608
     },
     {
       "sub": "Protocol & Launches",
-      "n": 792
-    },
-    {
-      "sub": "Price Predictions",
-      "n": 349
+      "n": 810
     },
     {
       "sub": "Crypto Regulation",
-      "n": 95
+      "n": 98
+    },
+    {
+      "sub": "Unclassified",
+      "n": 30
+    },
+    {
+      "sub": "Miscellaneous",
+      "n": 28
+    },
+    {
+      "sub": "Combat Sports",
+      "n": 2
+    },
+    {
+      "sub": "Tech Companies",
+      "n": 1
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 517
+      "n": 532
     },
     {
       "sub": "Financial Markets",
-      "n": 318
+      "n": 274
     },
     {
       "sub": "Monetary Policy",
-      "n": 197
+      "n": 265
     },
     {
       "sub": "Commodities",
       "n": 21
+    },
+    {
+      "sub": "Unclassified",
+      "n": 11
+    },
+    {
+      "sub": "Miscellaneous",
+      "n": 2
     }
   ],
   "Culture & Media": [
     {
-      "sub": "Soundbites",
-      "n": 4359
-    },
-    {
       "sub": "Movies, TV & Awards",
-      "n": 1324
+      "n": 1325
     },
     {
       "sub": "Celebrity & Events",
-      "n": 538
+      "n": 667
+    },
+    {
+      "sub": "Social Media",
+      "n": 645
     },
     {
       "sub": "Other Sports",
       "n": 205
     },
     {
-      "sub": "Social Media",
-      "n": 144
+      "sub": "Miscellaneous",
+      "n": 55
+    },
+    {
+      "sub": "eSports",
+      "n": 39
+    },
+    {
+      "sub": "Culture & Media",
+      "n": 3
+    },
+    {
+      "sub": "Unclassified",
+      "n": 1
+    },
+    {
+      "sub": "Tech Companies",
+      "n": 1
     }
   ],
   "AI & Tech": [
     {
-      "sub": "Model Releases & Benchmarks",
-      "n": 225
+      "sub": "Tech Companies",
+      "n": 230
     },
     {
-      "sub": "Tech Companies",
-      "n": 202
+      "sub": "Model Releases & Benchmarks",
+      "n": 227
+    },
+    {
+      "sub": "AI Regulation",
+      "n": 30
+    },
+    {
+      "sub": "eSports",
+      "n": 16
+    },
+    {
+      "sub": "Social Media",
+      "n": 5
+    },
+    {
+      "sub": "Miscellaneous",
+      "n": 4
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
-      "n": 1787
+      "n": 1733
     },
     {
       "sub": "Health & Science",
-      "n": 214
+      "n": 105
     },
     {
       "sub": "Space",
       "n": 82
+    },
+    {
+      "sub": "Miscellaneous",
+      "n": 6
+    },
+    {
+      "sub": "Science",
+      "n": 5
+    },
+    {
+      "sub": "Unclassified",
+      "n": 5
+    }
+  ],
+  "Global Soccer": [
+    {
+      "sub": "Other soccer leagues",
+      "n": 54
+    },
+    {
+      "sub": "Champions League",
+      "n": 51
+    },
+    {
+      "sub": "EPL",
+      "n": 18
+    }
+  ],
+  "Health & Science": [
+    {
+      "sub": "Health & Science",
+      "n": 83
+    },
+    {
+      "sub": "Miscellaneous",
+      "n": 10
+    }
+  ],
+  "NBA": [
+    {
+      "sub": "NBA Playoffs",
+      "n": 35
+    },
+    {
+      "sub": "NBA games",
+      "n": 9
+    }
+  ],
+  "Tech Companies": [
+    {
+      "sub": "Product launches",
+      "n": 11
+    },
+    {
+      "sub": "Executive Changes",
+      "n": 10
+    },
+    {
+      "sub": "Product launches, exec changes, acquisitions, IPOs in tech (non-crypto)",
+      "n": 3
+    },
+    {
+      "sub": "Tech Companies",
+      "n": 2
+    },
+    {
+      "sub": "Exec changes",
+      "n": 2
+    }
+  ],
+  "Macroeconomics": [
+    {
+      "sub": "Other macroeconomics",
+      "n": 5
+    }
+  ],
+  "Weather & Disasters": [
+    {
+      "sub": "Weather Forecasts",
+      "n": 27
+    },
+    {
+      "sub": "Weather forecasts",
+      "n": 19
+    },
+    {
+      "sub": "Weather & Disasters",
+      "n": 8
+    }
+  ],
+  "Financial Markets": [
+    {
+      "sub": "Equities",
+      "n": 28
+    },
+    {
+      "sub": "Financial Markets",
+      "n": 16
+    },
+    {
+      "sub": "ETFs",
+      "n": 1
+    }
+  ],
+  "NFL": [
+    {
+      "sub": "NFL coach hires",
+      "n": 60
+    },
+    {
+      "sub": "NFL games",
+      "n": 1
+    },
+    {
+      "sub": "NFL player events",
+      "n": 1
+    }
+  ],
+  "NHL": [
+    {
+      "sub": "NHL games",
+      "n": 10
+    }
+  ],
+  "Social Media": [
+    {
+      "sub": "Platform events",
+      "n": 9
+    },
+    {
+      "sub": "Social Media",
+      "n": 1
+    },
+    {
+      "sub": "Unclassified",
+      "n": 1
+    }
+  ],
+  "College sports": [
+    {
+      "sub": "Other Sports",
+      "n": 43
+    }
+  ],
+  "Tech": [
+    {
+      "sub": "Tech Companies",
+      "n": 2
+    }
+  ],
+  "Olympics & Multi-sport": [
+    {
+      "sub": "Olympics, world championships, multi-sport events",
+      "n": 3
+    }
+  ],
+  "Other Sports": [
+    {
+      "sub": "Sports",
+      "n": 3
+    }
+  ],
+  "eSports": [
+    {
+      "sub": "Pro gaming tournaments",
+      "n": 1
     }
   ]
 }
