@@ -112,8 +112,14 @@ def main():
         q = (row.question or "").strip()
         if not q:
             continue
-        cat = getattr(row, "category", None) or "Miscellaneous"
-        sub = getattr(row, "subcategory", None) or "Unclassified"
+        cat = getattr(row, "category", None)
+        sub = getattr(row, "subcategory", None)
+        # pandas NaN is truthy under `or`, so the literal `nan or "X"` returns
+        # nan. Coerce explicitly: pd.isna catches floats nan + None + pd.NA.
+        if cat is None or (isinstance(cat, float) and pd.isna(cat)):
+            cat = "Miscellaneous"
+        if sub is None or (isinstance(sub, float) and pd.isna(sub)):
+            sub = "Unclassified"
         # Date-lock safety: only include lookback prices (seen BEFORE close)
         p1 = None if pd.isna(row.p_yes_1d) else round(float(row.p_yes_1d), 4)
         p7 = None if pd.isna(row.p_yes_7d) else round(float(row.p_yes_7d), 4)

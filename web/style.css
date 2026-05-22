@@ -1023,7 +1023,11 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   background: var(--accent-soft);
 }
 .deck-card.partial {
-  border-color: var(--accent-line);
+  /* Full-accent border (not the 25% --accent-line) so partial is visibly
+     distinct from off. No background fill so it's also clearly not "on".
+     Net effect: off = grey border + white, partial = blue border + white,
+     on = blue border + soft blue fill. */
+  border-color: var(--accent);
   background: #fff;
 }
 .deck-card.expanded {
@@ -1065,6 +1069,11 @@ button.ghost:hover { color: var(--text); background: var(--line-soft); }
   transition: border-color 0.1s ease, background 0.1s ease, color 0.1s ease;
 }
 .deck-exp:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+/* State variants mirror the cat-card visual hierarchy so a glance at the
+   pill tells the user "all subs on / some on / none on" without expanding.
+   off = grey (default), partial = blue border, on = blue border + soft fill. */
+.deck-exp-partial { border-color: var(--accent); color: var(--accent); }
+.deck-exp-on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .deck-exp-label { font-weight: 500; }
 .deck-exp-caret {
   display: inline-block; font-size: 0.75rem; line-height: 1;

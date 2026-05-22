@@ -1,0 +1,47 @@
+{
+  "World Politics": {
+    "slug": "world-politics",
+    "n": 890,
+    "bytes": 181291
+  },
+  "Sports": {
+    "slug": "sports",
+    "n": 2303,
+    "bytes": 410685
+  },
+  "Crypto": {
+    "slug": "crypto",
+    "n": 673,
+    "bytes": 117184
+  },
+  "Culture & Media": {
+    "slug": "culture-and-media",
+    "n": 613,
+    "bytes": 124254
+  },
+  "US Politics": {
+    "slug": "us-politics",
+    "n": 606,
+    "bytes": 123553
+  },
+  "Miscellaneous": {
+    "slug": "miscellaneous",
+    "n": 32,
+    "bytes": 5838
+  },
+  "Economy & Finance": {
+    "slug": "economy-and-finance",
+    "n": 846,
+    "bytes": 169231
+  },
+  "Science": {
+    "slug": "science",
+    "n": 1121,
+    "bytes": 221433
+  },
+  "AI & Tech": {
+    "slug": "ai-and-tech",
+    "n": 323,
+    "bytes": 63995
+  }
+}

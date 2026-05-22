@@ -479,10 +479,47 @@ def main():
     print(f"Wrote {OUT_SLUGS.name} ({len(slug_map)} slugs, {slugs_kb:.1f} KB)",
           file=sys.stderr)
     print(f"Wrote {OUT_TAXONOMY.name}", file=sys.stderr)
+
+    # Per-category shards: markets-active-<cat-slug>.json
+    # The client fetches only the shards matching the user's selected
+    # subcategory parents, so a "show only Crypto" deck pulls ~50KB instead
+    # of the full 1.4MB bundle. The big markets-active.json stays as a
+    # fallback for cases where shard discovery hasn't run yet (legacy
+    # clients, deck inspector).
+    by_cat = defaultdict(list)
+    for r in records:
+        by_cat[r["c"]].append(r)
+    shard_index = {}
+    for cat, items in by_cat.items():
+        slug = cat_to_slug(cat)
+        shard_path = WEB / f"markets-active-{slug}.json"
+        with shard_path.open("w") as f:
+            json.dump(items, f, separators=(",", ":"))
+        shard_index[cat] = {"slug": slug, "n": len(items),
+                            "bytes": shard_path.stat().st_size}
+    with (WEB / "markets-active-shards.json").open("w") as f:
+        json.dump(shard_index, f, indent=2)
+    print(f"\nShards: {len(shard_index)} category files", file=sys.stderr)
+    for cat, info in sorted(shard_index.items(), key=lambda x: -x[1]["n"]):
+        kb = info["bytes"] / 1024
+        print(f"  markets-active-{info['slug']}.json: {info['n']} markets, {kb:.1f} KB",
+              file=sys.stderr)
+
     print("\nCategory counts (volume-ordered):", file=sys.stderr)
     for c in ordered:
         n = sum(x["n"] for x in tax[c])
         print(f"  {c}: {n} markets ({len(tax[c])} subs)", file=sys.stderr)
+
+
+def cat_to_slug(cat: str) -> str:
+    """Stable, URL-safe category slug. Matches the client's catSlug() so the
+    fetch URL and the file on disk line up. Keep these two in lockstep when
+    editing - drift here means the client requests a 404."""
+    s = cat.lower()
+    s = re.sub(r"&", "and", s)
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    s = s.strip("-")
+    return s or "misc"
 
 
 if __name__ == "__main__":

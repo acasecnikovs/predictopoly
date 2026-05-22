@@ -206,3 +206,22 @@ jobs:
           fi
           git commit -m "$MSG"
           git push origin HEAD:main
+
+      - name: Deploy to Cloudflare Pages
+        # Cloudflare Pages auto-deploy via git integration is broken
+        # (project was created via Direct Upload, can't retroactively add
+        # git integration). Push deploys directly via wrangler instead.
+        # Skipped when no deck changes happened above - nothing to ship.
+        if: success()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Re-derive whether anything changed so we don't waste a deploy
+          # when the commit step short-circuited. Pull from the git log of
+          # this run: if HEAD's author is our bot, the commit landed.
+          if [ "$(git log -1 --pretty=%an)" != "predictopoly-bot" ]; then
+              echo "No bot commit this run; skipping pages deploy."
+              exit 0
+          fi
+          npx wrangler@latest pages deploy web --project-name=predictopoly --branch=main --commit-dirty=true

@@ -69,6 +69,24 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     return out;
   }
 
+  // Subs excluded from the default deck. Picked because the average user
+  // either doesn't understand them ("Will the BJP win Bihar?", "Will $HAWK
+  // FDV exceed $30M?") or has no signal to predict them ("Bitcoin above
+  // $107k by Friday?"). They stay reachable via the deck modal; this only
+  // hides them on first-visit / null-subs flow. Sports is excluded by full
+  // category at marketPasses level - too many per-event lines to enumerate.
+  const DEFAULT_EXCLUDED_SUBS = {
+    "Culture & Media": ["Soundbites"],
+    "World Politics": ["Non-US Elections"],
+    "Crypto": ["Protocol & Launches", "Speculation"],
+    "Science": ["Weather & Disasters"],
+  };
+  // Whole categories excluded from the default deck. Sports = too many
+  // per-event lines that drown signal. Miscellaneous = the "unclassified
+  // bin"; if the classifier couldn't put it anywhere, the user probably
+  // can't either.
+  const DEFAULT_EXCLUDED_CATS = new Set(["Sports", "Miscellaneous"]);
+
   // Deck presets - map preset id to a function that returns a {cat: [sub,...]}
   // shape using the live taxonomy. Display order is the visual order in the
   // deck modal; the fresh-user default is set independently via prefs init
@@ -81,18 +99,6 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       label: "All",
       hint: "every category",
       build: (tax) => pickCats(tax, Object.keys(tax)),
-    },
-    {
-      id: "hot",
-      label: "Edition picks",
-      hint: "~85 hand-picked questions, the good first impression",
-      // Hot picks is special: instead of selecting whole categories/subs, it
-      // matches a curated `hot:true` flag on individual markets (set in
-      // scripts/04_normalize_taxonomy.py from scripts/hot_picks.txt). The
-      // build function returns `null` to signal "use the hot flag, ignore
-      // category selection entirely". filteredPool() handles that branch.
-      build: () => null,
-      hotFlag: true,
     },
     {
       id: "news",
@@ -138,6 +144,11 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   let slugsActive = {};
   let activeLoaded = false;
   let activeLoadPromise = null;
+  // Per-category shards already pulled, so a deck-filter change that adds
+  // more categories only fetches the gap instead of re-downloading the
+  // whole 1.4MB bundle. Keys are top-level category names.
+  let activeShardsLoaded = new Set();
+  let activeShardIndex = null;  // map: cat -> { slug, n, bytes }, lazy
   // Active descriptions land in the shared `descs` map (keyed by market id),
   // so the existing renderDescription path Just Works regardless of mode.
   // Lazy-loaded once after the active dataset to avoid blocking first paint.
@@ -219,9 +230,11 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // `subs` as the current dataMode's deck; the other mode falls back to its
   // sensible default the first time the user switches.
   function deckDefaults(dataMode) {
-    return dataMode === "active"
-      ? { mode: "custom", subs: null }   // active has no hot pack; null subs = "All"
-      : { mode: "hot",    subs: null };  // resolved first-visit = curated edition picks
+    // Both modes default to custom + null subs = "show everything (modulo
+    // category-exclusion rules in marketPasses)". The curated "edition
+    // picks" hot pack was removed 2026-05-21 - calibration happens on the
+    // full deck, not on a hand-picked subset.
+    return { mode: "custom", subs: null };
   }
   function loadPrefs() {
     try {
@@ -234,7 +247,11 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       const decks = (p._decks && typeof p._decks === "object") ? p._decks : {};
       const sort = VALID_SORTS.includes(p.sort) ? p.sort : "random";
       return {
-        mode: p.mode || "custom",    // "hot" = curated allowlist, "custom" = subs-based
+        // Migration: "hot" mode (curated edition picks) was removed
+        // 2026-05-21. Old localStorage with mode="hot" gets coerced to
+        // "custom" so returning users land on the same full-deck UX as
+        // first-visit ones.
+        mode: (p.mode === "hot" || !p.mode) ? "custom" : p.mode,
         subs: p.subs || null,
         volIdx: Math.max(0, Math.min(VOL_STEPS.length - 1, vi)),
         dataMode: dm,                // "resolved" | "active"
@@ -308,19 +325,83 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // Active dataset is a single 1.4 MB file - no fast pack needed since the
   // resolved-side hot pack only exists because the full resolved set is 25 MB.
   // 1.4 MB brotli-compresses to ~250 KB, fine to load in one shot.
+  // Active category slug. Must match 09_export_active_for_web.py's
+  // cat_to_slug() exactly - file URLs come from this function.
+  function catSlug(cat) {
+    return (cat || "").toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "misc";
+  }
+
+  // Which top-level categories does the user actually want right now?
+  // Falls back to everything-except-Sports for first-visit / null subs
+  // so the bootstrap matches the marketPasses default behavior.
+  function activeCatsNeeded() {
+    if (prefs.subs && Object.keys(prefs.subs).some(k => (prefs.subs[k] || []).length)) {
+      return Object.keys(prefs.subs).filter(c => (prefs.subs[c] || []).length > 0);
+    }
+    // Default-deck case: all known cats minus Sports. Soundbites is a sub,
+    // so we still pull Culture & Media; marketPasses filters the sub at
+    // render time.
+    if (activeShardIndex) {
+      return Object.keys(activeShardIndex).filter(c => !DEFAULT_EXCLUDED_CATS.has(c));
+    }
+    return [];
+  }
+
+  async function loadActiveShard(cat) {
+    if (activeShardsLoaded.has(cat)) return true;
+    const slug = catSlug(cat);
+    try {
+      const res = await fetch(`data/markets-active-${slug}.json?v=${DATA_V}`);
+      if (!res.ok) return false;
+      const items = await res.json();
+      // Append shard's markets to marketsActive. Dedup by id in case two
+      // shard files overlap (shouldn't, but defensive).
+      const existing = new Set(marketsActive.map(m => m.id));
+      for (const m of items) {
+        if (!existing.has(m.id)) marketsActive.push(m);
+      }
+      activeShardsLoaded.add(cat);
+      // If we're currently in active dataMode, propagate the new markets
+      // into the live `markets` alias so renderDeckStrip / nextQuestion
+      // see them immediately.
+      if (prefs.dataMode === "active") markets = marketsActive;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function loadActiveData() {
     if (activeLoadPromise) return activeLoadPromise;
     activeLoadPromise = (async () => {
       try {
-        const [mRes, tRes, sRes] = await Promise.all([
-          fetch(`data/markets-active.json?v=${DATA_V}`),
+        // First: taxonomy + slugs + shard index (small, parallel).
+        const [tRes, sRes, idxRes] = await Promise.all([
           fetch(`data/taxonomy-active.json?v=${DATA_V}`),
           fetch(`data/slugs-active.json?v=${DATA_V}`),
+          fetch(`data/markets-active-shards.json?v=${DATA_V}`),
         ]);
-        if (!mRes.ok || !tRes.ok) return false;
-        marketsActive = await mRes.json();
+        if (!tRes.ok) return false;
         taxonomyActive = await tRes.json();
         if (sRes.ok) slugsActive = await sRes.json();
+        if (idxRes.ok) activeShardIndex = await idxRes.json();
+
+        // Reset accumulator for this load. Then fetch only the shards the
+        // user actually needs based on prefs.subs (or default exclusion
+        // set if subs is null).
+        marketsActive = [];
+        activeShardsLoaded.clear();
+        const needed = activeCatsNeeded();
+        if (needed.length === 0 && activeShardIndex) {
+          // Safety: nothing computed yet, grab a sensible default so the
+          // deck isn't empty on first paint.
+          needed.push(...Object.keys(activeShardIndex).filter(c => !DEFAULT_EXCLUDED_CATS.has(c)));
+        }
+        await Promise.all(needed.map(c => loadActiveShard(c)));
+
         activeLoaded = true;
         // Kick off descriptions in the background. Don't await - the first
         // active question can render without its description; we patch in
@@ -332,6 +413,17 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       }
     })();
     return activeLoadPromise;
+  }
+
+  // Called when the user toggles a category in the deck modal. If they
+  // added a category that hasn't been fetched yet, pull its shard so the
+  // deck isn't suddenly missing that category's markets.
+  async function ensureActiveShardsForSubs() {
+    if (!activeShardIndex) return;
+    const needed = activeCatsNeeded();
+    const missing = needed.filter(c => !activeShardsLoaded.has(c) && activeShardIndex[c]);
+    if (!missing.length) return;
+    await Promise.all(missing.map(c => loadActiveShard(c)));
   }
 
   // Active descriptions arrive as one ~7.6 MB file (brotli ~1.5 MB). Worth
@@ -395,14 +487,17 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (prefs.mode === "custom" && prefs.subs && taxonomy) {
       prefs.subs = sanitizeSubs(prefs.subs, taxonomy);
     }
-    // First active-mode visit lands here with subs:null (deckDefaults). The
-    // filteredPool fallback treats that as "show all", but the deck modal's
-    // preset matcher and category grid both read it as "nothing selected" -
-    // so the modal opens with Clear highlighted and every category off, even
-    // though the deck is showing every market. Bootstrap subs to fully-on
-    // here so what the user sees in the modal matches what they're playing.
+    // First-visit deck bootstrap. Excluded by default: noise subs that
+    // typical users don't understand or get value from. Listed at module
+    // scope (DEFAULT_EXCLUDED_SUBS) so marketPasses uses the same rules.
     if (prefs.mode === "custom" && !prefs.subs && taxonomy && Object.keys(taxonomy).length) {
-      prefs.subs = pickCats(taxonomy, Object.keys(taxonomy));
+      const cats = Object.keys(taxonomy).filter((c) => !DEFAULT_EXCLUDED_CATS.has(c));
+      prefs.subs = pickCats(taxonomy, cats);
+      for (const [cat, subs] of Object.entries(DEFAULT_EXCLUDED_SUBS)) {
+        if (prefs.subs[cat]) {
+          prefs.subs[cat] = prefs.subs[cat].filter((s) => !subs.includes(s));
+        }
+      }
     }
     prefs.dataMode = mode;
     savePrefs();
@@ -670,8 +765,8 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       // Celebrity & Events are gossipy and read like trivia not forecasts.
       // Users who actually want them can pick them via the deck modal.
       if (!prefs.subs || Object.keys(prefs.subs).every(k => !(prefs.subs[k] || []).length)) {
-        if (m.c === "Sports") return false;
-        if (m.c === "Culture & Media" && (m.s === "Soundbites" || m.s === "Celebrity & Events")) return false;
+        if (DEFAULT_EXCLUDED_CATS.has(m.c)) return false;
+        if (DEFAULT_EXCLUDED_SUBS[m.c] && DEFAULT_EXCLUDED_SUBS[m.c].includes(m.s)) return false;
         return true;
       }
       return isSelected(m.c, m.s);
@@ -680,6 +775,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (prefs.mode === "hot") return !!m.hot;
     const minVol = VOL_STEPS[prefs.volIdx];
     if ((m.v || 0) < minVol) return false;
+    // Same null-subs "show all (modulo noise categories)" semantics as
+    // active mode. Without this, deleting the hot pack leaves new past-mode
+    // users with an empty deck because their subs are null by default.
+    if (!prefs.subs || Object.keys(prefs.subs).every(k => !(prefs.subs[k] || []).length)) {
+      if (DEFAULT_EXCLUDED_CATS.has(m.c)) return false;
+      if (DEFAULT_EXCLUDED_SUBS[m.c] && DEFAULT_EXCLUDED_SUBS[m.c].includes(m.s)) return false;
+      return true;
+    }
     return isSelected(m.c, m.s);
   }
   function catState(cat) {
@@ -790,10 +893,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       }
       return;
     }
-    if (prefs.mode === "hot") {
-      $("deck-label").textContent = `edition picks · ${fmtNum(total)} questions`;
-      return;
-    }
+    // "hot" mode no longer reachable (deckDefaults always returns custom,
+    // loadPrefs coerces legacy hot to custom, PRESETS no longer has the
+    // hotFlag entry). Leaving the branch out entirely.
     const allCats = orderedTaxKeys();
     const activeCats = allCats.filter((c) => catState(c) !== "off");
     const allOn = allCats.every((c) => catState(c) === "on");
@@ -1579,6 +1681,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     renderPresets();
     renderDeckGrid();
     updateDeckPoolInfo();
+    onActiveSubsChanged();
   }
 
   // When the user starts toggling cats/subs while in hot mode, leave them with
@@ -1639,6 +1742,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // expanded category cards (UI state, not persisted)
   const expandedCats = new Set();
 
+  // After any subs mutation in active mode, pull shards for newly-selected
+  // categories. Fire-and-forget - the toggle UI doesn't block on it; once
+  // the shard lands the deck-strip count just bumps up.
+  function onActiveSubsChanged() {
+    if (prefs.dataMode !== "active") return;
+    ensureActiveShardsForSubs().then(() => {
+      renderDeckStrip();
+      updateDeckPoolInfo();
+    });
+  }
   function setCatAll(cat, on) {
     bootstrapCustomFromHot();
     if (!prefs.subs) prefs.subs = {};
@@ -1648,6 +1761,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       prefs.subs[cat] = [];
     }
     savePrefs();
+    onActiveSubsChanged();
   }
   function toggleSub(cat, sub) {
     bootstrapCustomFromHot();
@@ -1658,6 +1772,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     else list.push(sub);
     prefs.subs[cat] = list;
     savePrefs();
+    onActiveSubsChanged();
   }
 
   function renderDeckGrid() {
@@ -1688,17 +1803,16 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
         playedHtml = `<div class="deck-played">${played.n} played · avg ${fmtPts(avg)}</div>`;
       }
 
-      let summary = `${fmtNum(total)} questions`;
-      if (state === "partial") {
-        const sel = (prefs.subs && prefs.subs[cat]) || [];
-        summary = `${sel.length} of ${subs.length} subs · ${fmtNum(total)} qs`;
-      }
+      const summary = `${fmtNum(total)} questions`;
+      const sel = (prefs.subs && prefs.subs[cat]) || [];
 
       const onlySub = subs.length <= 1;
-      // The previous standalone ▸ chevron was small enough to read as a
-      // dot. Pair it with an explicit "subs" label and rotate the glyph on
-      // expand so the affordance is unmissable.
-      const expBtn = onlySub ? "" : `<button class="deck-exp${expanded ? " open" : ""}" type="button" title="${expanded ? "collapse subcategories" : "show subcategories"}" aria-expanded="${expanded}"><span class="deck-exp-label">subs</span><span class="deck-exp-caret" aria-hidden="true">▾</span></button>`;
+      // The subs pill carries both affordance and selection state now: the
+      // "N/M ▾" label tells the user how many subs are on at a glance, and
+      // its border colour mirrors the parent card (grey/blue/blue-filled)
+      // so the partial case is visible without expanding. Earlier the pill
+      // just said "subs ▾" and gave no hint that anything inside was off.
+      const expBtn = onlySub ? "" : `<button class="deck-exp deck-exp-${state}${expanded ? " open" : ""}" type="button" title="${expanded ? "collapse subcategories" : "show subcategories"}" aria-expanded="${expanded}"><span class="deck-exp-label">${sel.length}/${subs.length}</span><span class="deck-exp-caret" aria-hidden="true">▾</span></button>`;
 
       card.innerHTML = `
         <div class="deck-head">
@@ -2252,31 +2366,41 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       localStorage.removeItem(LS_REVISITED);
       sessionStorage.clear();
     } catch { /* ignore - private mode etc., reload still helps */ }
-    location.reload();
+    // Clear the URL hash too: location.reload() preserves it, so a user
+    // who hit Reset while on #stats would land back on Stats with empty
+    // localStorage instead of the default Play view. Same for any deep
+    // link (#open, #history) the user navigated through.
+    location.assign(location.pathname);
   }
 
   // ------- init -------
   (async () => {
-    // Fire ALL background fetches in parallel from the start. The hot pack
-    // wins for fresh visits (mode="hot"); custom-deck users wait for the full
-    // markets fetch but it runs concurrently with descriptions and slugs, so
-    // by the time first render happens descriptions for non-hot questions
-    // are already in flight or done.
-    const fullMarketsKick = loadFullMarkets();
-    loadDescriptions();
-    loadSlugs();
+    // Lazy-load by dataMode. Old behavior fired all three resolved-side
+    // fetches (markets.json 9.4MB, descriptions, slugs) unconditionally on
+    // boot, which is wasted bandwidth for active-default users. Now we only
+    // pre-fetch what the current dataMode needs; the other mode's data
+    // loads when the user actually switches there.
+    let fullMarketsKick = null;
+    if (prefs.dataMode === "resolved") {
+      fullMarketsKick = loadFullMarkets();
+      loadDescriptions();
+      loadSlugs();
+    }
 
     try {
       await loadFastData();
     } catch (e) {
+      // Surface the raw error to console for diagnosis without leaking it
+      // onto the page for end users.
+      console.error("loadFastData failed:", e);
       $("view-play").innerHTML = '<h2>Could not load data</h2><p class="muted">Expected files at <code>web/data/markets-hot.json</code> and <code>web/data/taxonomy.json</code>.</p>';
       return;
     }
 
     // Custom-mode users land on filters that the hot-only pack can't satisfy,
-    // so block on the full set before the first render. The fetch already
-    // started above in parallel with the hot pack.
-    if (prefs.mode === "custom" && prefs.subs) {
+    // so block on the full set before the first render. Only relevant when
+    // we actually kicked off the resolved-side full fetch above.
+    if (prefs.dataMode === "resolved" && prefs.mode === "custom" && prefs.subs) {
       const qEl = $("m-question");
       if (qEl) qEl.textContent = "Loading your custom deck...";
       await fullMarketsKick;
@@ -2361,6 +2485,23 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
           if (qEl) qEl.textContent = "Could not load active markets.";
           return;
         }
+      }
+      if (mode === "resolved" && marketsAreFastPack) {
+        // Past mode was lazy-skipped on boot for active-default users -
+        // fetch the full markets.json + descriptions + slugs now. Without
+        // this the deck shows the 87-row hot pack and most filters miss.
+        const qEl = $("m-question");
+        if (qEl) {
+          qEl.textContent = "Loading past markets...";
+          qEl.classList.add("is-loading");
+        }
+        const ok = await loadFullMarkets();
+        if (!ok) {
+          if (qEl) qEl.textContent = "Could not load past markets.";
+          return;
+        }
+        loadDescriptions();
+        loadSlugs();
       }
       applyDataMode(mode);
       // Drop any open reveal panels - they belong to the other mode
