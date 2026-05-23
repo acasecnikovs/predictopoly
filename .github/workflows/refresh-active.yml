@@ -30,6 +30,11 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Opt into Node.js 24 for actions/* now to silence the Node20
+    # deprecation warning (June 2026 forced cutover). All actions we use
+    # support it.
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
       - name: Checkout

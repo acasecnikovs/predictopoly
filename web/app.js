@@ -149,6 +149,10 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // whole 1.4MB bundle. Keys are top-level category names.
   let activeShardsLoaded = new Set();
   let activeShardIndex = null;  // map: cat -> { slug, n, bytes }, lazy
+  // Same idea for past-deck markets.json. Drops the 9MB monolithic fetch
+  // when the user only wants e.g. Crypto + AI past markets.
+  let resolvedShardsLoaded = new Set();
+  let resolvedShardIndex = null;
   // Active descriptions land in the shared `descs` map (keyed by market id),
   // so the existing renderDescription path Just Works regardless of mode.
   // Lazy-loaded once after the active dataset to avoid blocking first paint.
@@ -273,15 +277,15 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   let fullMarketsPromise = null;
 
   async function loadFastData() {
-    // descriptions-hot is small (~14 KB brotli) and ships on the same parallel
-    // burst so the first question's description shows up with the question.
-    const [mRes, tRes, dRes] = await Promise.all([
-      fetch(`data/markets-hot.json?v=${DATA_V}`),
+    // After hot-mode removal there's no more "fast pack" - the past deck
+    // loads via shards on demand. Boot only needs taxonomy.json so the
+    // deck modal can render, plus optional fast-pack of hot descriptions
+    // if present (legacy artifact, fine if it 404s).
+    const [tRes, dRes] = await Promise.all([
       fetch(`data/taxonomy.json?v=${DATA_V}`),
       fetch(`data/descriptions-hot.json?v=${DATA_V}`),
     ]);
-    if (!mRes.ok || !tRes.ok) throw new Error("data fetch failed");
-    marketsResolved = await mRes.json();
+    if (!tRes.ok) throw new Error("data fetch failed");
     taxonomyResolved = await tRes.json();
     if (dRes.ok) {
       descs = await dRes.json();
@@ -290,9 +294,68 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     if (prefs.dataMode === "resolved") applyDataMode("resolved", { silent: true });
   }
 
+  function resolvedCatsNeeded() {
+    if (prefs.subs && Object.keys(prefs.subs).some(k => (prefs.subs[k] || []).length)) {
+      return Object.keys(prefs.subs).filter(c => (prefs.subs[c] || []).length > 0);
+    }
+    if (resolvedShardIndex) {
+      return Object.keys(resolvedShardIndex).filter(c => !DEFAULT_EXCLUDED_CATS.has(c));
+    }
+    return [];
+  }
+
+  async function loadResolvedShard(cat) {
+    if (resolvedShardsLoaded.has(cat)) return true;
+    const slug = catSlug(cat);
+    try {
+      const res = await fetch(`data/markets-${slug}.json?v=${DATA_V}`);
+      if (!res.ok) return false;
+      const items = await res.json();
+      // Replace the fast-pack hot pack with full data the first time a
+      // shard lands. Subsequent shards append.
+      if (marketsAreFastPack) {
+        marketsResolved = [];
+        marketsAreFastPack = false;
+      }
+      const existing = new Set(marketsResolved.map(m => m.id));
+      for (const m of items) {
+        if (!existing.has(m.id)) marketsResolved.push(m);
+      }
+      resolvedShardsLoaded.add(cat);
+      if (prefs.dataMode === "resolved") markets = marketsResolved;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function ensureResolvedShardsForSubs() {
+    if (!resolvedShardIndex) return;
+    const needed = resolvedCatsNeeded();
+    const missing = needed.filter(c => !resolvedShardsLoaded.has(c) && resolvedShardIndex[c]);
+    if (!missing.length) return;
+    await Promise.all(missing.map(c => loadResolvedShard(c)));
+  }
+
   function loadFullMarkets() {
     if (fullMarketsPromise) return fullMarketsPromise;
     fullMarketsPromise = (async () => {
+      // Shard-based path: pull markets-shards.json, then fetch only the
+      // category shards the current prefs.subs cares about. Falls through
+      // to the legacy monolithic markets.json fetch if shards index is
+      // unavailable (older deploys, manual data ops, etc).
+      try {
+        const idxRes = await fetch(`data/markets-shards.json?v=${DATA_V}`);
+        if (idxRes.ok) {
+          resolvedShardIndex = await idxRes.json();
+          const needed = resolvedCatsNeeded();
+          if (needed.length) {
+            await Promise.all(needed.map(c => loadResolvedShard(c)));
+            return true;
+          }
+        }
+      } catch { /* fall through to monolith */ }
+
       // One quiet retry with a small backoff: a transient blip on the 1.3 MB
       // markets.json shouldn't surface to the user as a wedged empty deck.
       // Two attempts cover the overwhelming majority of flaky network cases.
@@ -730,9 +793,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- pool / pick -------
   function isSelected(cat, sub) {
-    // UI-only: which sub-chips light up in the deck modal. In hot mode no
-    // sub is "selected" in the cat/sub sense (selection is per-market).
-    if (prefs.mode === "hot") return false;
+    // UI-only: which sub-chips light up in the deck modal.
     const arr = prefs.subs && prefs.subs[cat];
     if (!arr) return false;
     return arr.indexOf(sub) >= 0;
@@ -772,7 +833,6 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       return isSelected(m.c, m.s);
     }
     if (isHindsightSpoiler(m)) return false;
-    if (prefs.mode === "hot") return !!m.hot;
     const minVol = VOL_STEPS[prefs.volIdx];
     if ((m.v || 0) < minVol) return false;
     // Same null-subs "show all (modulo noise categories)" semantics as
@@ -786,9 +846,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     return isSelected(m.c, m.s);
   }
   function catState(cat) {
-    // returns "on" | "partial" | "off". Only meaningful in custom mode -
-    // hot mode reports "off" so deck cards don't get falsely highlighted.
-    if (prefs.mode === "hot") return "off";
+    // returns "on" | "partial" | "off".
     const subs = (taxonomy[cat] || []).map((x) => x.sub);
     if (!subs.length) return "off";
     const selected = (prefs.subs && prefs.subs[cat]) || [];
@@ -1696,8 +1754,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // A preset matches if it produces the same effective deck as the current state.
   function presetMatches(preset) {
-    if (preset.hotFlag) return prefs.mode === "hot";
-    if (prefs.mode === "hot") return false;
+    if (preset.hotFlag) return false;  // hot preset no longer exists
     const target = preset.build(taxonomy);
     const cur = prefs.subs || {};
     const tCats = Object.keys(target);
@@ -1746,11 +1803,17 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
   // categories. Fire-and-forget - the toggle UI doesn't block on it; once
   // the shard lands the deck-strip count just bumps up.
   function onActiveSubsChanged() {
-    if (prefs.dataMode !== "active") return;
-    ensureActiveShardsForSubs().then(() => {
-      renderDeckStrip();
-      updateDeckPoolInfo();
-    });
+    if (prefs.dataMode === "active") {
+      ensureActiveShardsForSubs().then(() => {
+        renderDeckStrip();
+        updateDeckPoolInfo();
+      });
+    } else if (prefs.dataMode === "resolved") {
+      ensureResolvedShardsForSubs().then(() => {
+        renderDeckStrip();
+        updateDeckPoolInfo();
+      });
+    }
   }
   function setCatAll(cat, on) {
     bootstrapCustomFromHot();

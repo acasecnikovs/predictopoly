@@ -314,6 +314,36 @@ def main():
     with open(WEB / "markets.json", "w") as f:
         json.dump(markets, f, separators=(",", ":"))
 
+    # Per-category shards (mirror the active-side split in 09). The full
+    # markets.json above stays as a fallback; the client fetches only the
+    # shards intersecting prefs.subs so a "Crypto only" past deck pulls
+    # ~150KB instead of 9MB.
+    from collections import defaultdict as _dd
+    import re as _re
+    def _slug(cat):
+        s = (cat or "").lower()
+        s = _re.sub(r"&", "and", s)
+        s = _re.sub(r"[^a-z0-9]+", "-", s)
+        s = s.strip("-")
+        return s or "misc"
+    by_cat = _dd(list)
+    for r in markets:
+        by_cat[r["c"]].append(r)
+    shard_index = {}
+    for cat, items in by_cat.items():
+        slug = _slug(cat)
+        shard_path = WEB / f"markets-{slug}.json"
+        with open(shard_path, "w") as sf:
+            json.dump(items, sf, separators=(",", ":"))
+        shard_index[cat] = {"slug": slug, "n": len(items),
+                            "bytes": shard_path.stat().st_size}
+    with open(WEB / "markets-shards.json", "w") as f:
+        json.dump(shard_index, f, indent=2)
+    print(f"Past-deck shards: {len(shard_index)} files")
+    for cat, info in sorted(shard_index.items(), key=lambda x: -x[1]["n"]):
+        print(f"  markets-{info['slug']}.json: {info['n']} markets, "
+              f"{info['bytes']/1024:.1f} KB")
+
     # Hot-pack: tiny subset of just the curated questions, ~22 KB raw.
     # Default deck on a fresh visit is "hot", so this is everything the client
     # needs for the first paint. The full markets.json loads in the background.

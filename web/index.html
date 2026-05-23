@@ -23,9 +23,7 @@
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png?v=2">
 
 <link rel="stylesheet" href="style.css?v=75">
-<link rel="preload" href="data/markets-hot.json?v=18" as="fetch" type="application/json" crossorigin>
 <link rel="preload" href="data/taxonomy.json?v=18" as="fetch" type="application/json" crossorigin>
-<link rel="preload" href="data/descriptions-hot.json?v=18" as="fetch" type="application/json" crossorigin>
 <!-- chart.js is loaded lazily by app.js when the user opens the stats view -->
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 </head>
@@ -97,12 +95,12 @@
       <p id="welcome-lede" class="welcome-lede">Calibration training on real Polymarket questions. Set the probability of <b>YES</b>, see how sharp you actually are.</p>
       <div class="welcome-modes">
         <div class="welcome-mode">
-          <div class="welcome-mode-tag resolved">Past markets</div>
-          <p>~37k resolved questions. Instant feedback against the outcome and the closing price.</p>
-        </div>
-        <div class="welcome-mode">
           <div class="welcome-mode-tag active">Live markets</div>
           <p>Currently-open questions. Scored when they resolve.</p>
+        </div>
+        <div class="welcome-mode">
+          <div class="welcome-mode-tag resolved">Past markets</div>
+          <p>~47k resolved questions. Instant feedback against the outcome and the closing price.</p>
         </div>
       </div>
       <div class="welcome-shortcuts">
@@ -139,7 +137,7 @@
       <span id="m-vol"></span>
     </div>
 
-    <h2 id="m-question" class="question is-loading">Loading 37,499 questions...</h2>
+    <h2 id="m-question" class="question is-loading">Loading...</h2>
     <div id="m-desc" class="desc collapsed hidden"></div>
     <button id="btn-desc-toggle" class="desc-toggle hidden">show description ↓</button>
 

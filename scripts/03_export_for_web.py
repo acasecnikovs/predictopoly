@@ -207,6 +207,11 @@ def main():
         print(f"Wrote {path.name} ({mb:.2f} MB)", file=sys.stderr)
     print(f"Total descriptions: {desc_total} across {DESC_SHARDS} shards", file=sys.stderr)
     print(f"Wrote {OUT_TAXONOMY}", file=sys.stderr)
+    # Per-category shards are emitted by 04_normalize_taxonomy.py after it
+    # canonicalizes the categories. Sharding here would bake in the raw
+    # gemini classifications (NBA, Global Soccer surfacing as top-level
+    # cats etc) which the client doesn't know how to slug.
+
     print(f"\nCategory counts (by volume-weighted order):", file=sys.stderr)
     for c in ordered:
         n = sum(x["n"] for x in tax[c])
