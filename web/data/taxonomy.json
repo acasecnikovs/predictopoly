@@ -2,7 +2,7 @@
   "US Politics": [
     {
       "sub": "Policy & Governance",
-      "n": 4050
+      "n": 4053
     },
     {
       "sub": "Presidential Elections",
@@ -14,7 +14,7 @@
     },
     {
       "sub": "Appointments",
-      "n": 244
+      "n": 250
     },
     {
       "sub": "Miscellaneous",
@@ -32,11 +32,11 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 7293
+      "n": 7313
     },
     {
       "sub": "Other Sports",
-      "n": 3807
+      "n": 3808
     },
     {
       "sub": "NBA",
@@ -52,7 +52,7 @@
     },
     {
       "sub": "NHL",
-      "n": 1414
+      "n": 1415
     },
     {
       "sub": "MLB",
@@ -64,7 +64,7 @@
     },
     {
       "sub": "eSports",
-      "n": 569
+      "n": 572
     },
     {
       "sub": "F1 & Motorsport",
@@ -106,7 +106,7 @@
   "World Politics": [
     {
       "sub": "International Relations & Conflicts",
-      "n": 1419
+      "n": 1425
     },
     {
       "sub": "Non-US Elections",
@@ -154,7 +154,7 @@
     },
     {
       "sub": "Protocol & Launches",
-      "n": 810
+      "n": 814
     },
     {
       "sub": "Crypto Regulation",
@@ -206,7 +206,7 @@
   "Culture & Media": [
     {
       "sub": "Movies, TV & Awards",
-      "n": 1325
+      "n": 1336
     },
     {
       "sub": "Celebrity & Events",
@@ -214,7 +214,7 @@
     },
     {
       "sub": "Social Media",
-      "n": 645
+      "n": 659
     },
     {
       "sub": "Other Sports",
@@ -248,7 +248,7 @@
     },
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 227
+      "n": 228
     },
     {
       "sub": "AI Regulation",
@@ -256,7 +256,7 @@
     },
     {
       "sub": "eSports",
-      "n": 16
+      "n": 17
     },
     {
       "sub": "Social Media",
@@ -278,7 +278,7 @@
     },
     {
       "sub": "Space",
-      "n": 82
+      "n": 83
     },
     {
       "sub": "Miscellaneous",
