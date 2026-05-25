@@ -2,7 +2,7 @@
   "US Politics": [
     {
       "sub": "Policy & Governance",
-      "n": 4053
+      "n": 4054
     },
     {
       "sub": "Presidential Elections",
@@ -32,7 +32,7 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 7313
+      "n": 7342
     },
     {
       "sub": "Other Sports",
@@ -64,7 +64,7 @@
     },
     {
       "sub": "eSports",
-      "n": 572
+      "n": 573
     },
     {
       "sub": "F1 & Motorsport",
@@ -110,7 +110,7 @@
     },
     {
       "sub": "Non-US Elections",
-      "n": 1372
+      "n": 1374
     },
     {
       "sub": "Global Soccer",
@@ -222,7 +222,7 @@
     },
     {
       "sub": "Miscellaneous",
-      "n": 55
+      "n": 56
     },
     {
       "sub": "eSports",
@@ -243,12 +243,12 @@
   ],
   "AI & Tech": [
     {
-      "sub": "Tech Companies",
+      "sub": "Model Releases & Benchmarks",
       "n": 230
     },
     {
-      "sub": "Model Releases & Benchmarks",
-      "n": 228
+      "sub": "Tech Companies",
+      "n": 230
     },
     {
       "sub": "AI Regulation",
@@ -270,7 +270,7 @@
   "Science": [
     {
       "sub": "Weather & Disasters",
-      "n": 1733
+      "n": 1736
     },
     {
       "sub": "Health & Science",
