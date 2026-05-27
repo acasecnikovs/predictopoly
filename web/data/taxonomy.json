@@ -10,7 +10,7 @@
     },
     {
       "sub": "Nominations & Primaries",
-      "n": 872
+      "n": 881
     },
     {
       "sub": "Appointments",
@@ -32,7 +32,7 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 7344
+      "n": 7354
     },
     {
       "sub": "Other Sports",
@@ -106,7 +106,7 @@
   "World Politics": [
     {
       "sub": "International Relations & Conflicts",
-      "n": 1425
+      "n": 1426
     },
     {
       "sub": "Non-US Elections",
@@ -188,7 +188,7 @@
     },
     {
       "sub": "Monetary Policy",
-      "n": 268
+      "n": 271
     },
     {
       "sub": "Commodities",
@@ -206,7 +206,7 @@
   "Culture & Media": [
     {
       "sub": "Movies, TV & Awards",
-      "n": 1336
+      "n": 1341
     },
     {
       "sub": "Celebrity & Events",
