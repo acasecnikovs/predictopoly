@@ -32,11 +32,11 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 7357
+      "n": 7358
     },
     {
       "sub": "Other Sports",
-      "n": 3808
+      "n": 3809
     },
     {
       "sub": "NBA",
@@ -44,7 +44,7 @@
     },
     {
       "sub": "Tennis",
-      "n": 2026
+      "n": 2034
     },
     {
       "sub": "NFL",
@@ -56,7 +56,7 @@
     },
     {
       "sub": "MLB",
-      "n": 1190
+      "n": 1195
     },
     {
       "sub": "Combat Sports",
@@ -183,12 +183,12 @@
       "n": 533
     },
     {
-      "sub": "Financial Markets",
+      "sub": "Monetary Policy",
       "n": 274
     },
     {
-      "sub": "Monetary Policy",
-      "n": 271
+      "sub": "Financial Markets",
+      "n": 274
     },
     {
       "sub": "Commodities",
