@@ -2,7 +2,7 @@
   "US Politics": [
     {
       "sub": "Policy & Governance",
-      "n": 4054
+      "n": 4059
     },
     {
       "sub": "Presidential Elections",
@@ -32,19 +32,19 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 7369
+      "n": 7378
     },
     {
       "sub": "Other Sports",
-      "n": 3809
+      "n": 3823
     },
     {
       "sub": "NBA",
-      "n": 3506
+      "n": 3508
     },
     {
       "sub": "Tennis",
-      "n": 2035
+      "n": 2036
     },
     {
       "sub": "NFL",
@@ -60,7 +60,7 @@
     },
     {
       "sub": "Combat Sports",
-      "n": 592
+      "n": 593
     },
     {
       "sub": "eSports",
@@ -106,7 +106,7 @@
   "World Politics": [
     {
       "sub": "International Relations & Conflicts",
-      "n": 1426
+      "n": 1429
     },
     {
       "sub": "Non-US Elections",
@@ -183,11 +183,11 @@
       "n": 533
     },
     {
-      "sub": "Monetary Policy",
-      "n": 274
+      "sub": "Financial Markets",
+      "n": 287
     },
     {
-      "sub": "Financial Markets",
+      "sub": "Monetary Policy",
       "n": 274
     },
     {
@@ -210,11 +210,11 @@
     },
     {
       "sub": "Celebrity & Events",
-      "n": 667
+      "n": 669
     },
     {
       "sub": "Social Media",
-      "n": 659
+      "n": 664
     },
     {
       "sub": "Other Sports",
@@ -274,11 +274,11 @@
     },
     {
       "sub": "Health & Science",
-      "n": 105
+      "n": 107
     },
     {
       "sub": "Space",
-      "n": 83
+      "n": 84
     },
     {
       "sub": "Miscellaneous",
