@@ -29,7 +29,12 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Healthy daily runs finish in 10-13 min. Bumped from 30 to 60 to
+    # absorb a cold-cache rebuild on free-tier Gemini (full ~7k
+    # classifications at throttled RPM lands around 50 min). Once the
+    # cache is reseeded the budget is unused on healthy days; GHA only
+    # bills actual runtime.
+    timeout-minutes: 60
     # Opt into Node.js 24 for actions/* now to silence the Node20
     # deprecation warning (June 2026 forced cutover). All actions we use
     # support it.
@@ -60,12 +65,26 @@ jobs:
           path: |
             data/active_classification_progress.jsonl
             data/active_descriptions.jsonl
-          # Static key: we always want the latest cache. Save step at the
-          # end overwrites by appending. 7-day TTL on GHA cache means a
-          # week of dormancy resets us to cold; that's fine.
-          key: predictopoly-active-pipeline-v1
+          # Dynamic key per run. actions/cache@v4 SKIPS the post-run save
+          # when the primary key already exists ("Cache hit occurred on the
+          # primary key, not saving cache"). The previous static key
+          # `predictopoly-active-pipeline-v1` triggered that footgun on
+          # every run: cache restored from the original April 30 snapshot,
+          # script appended thousands of new classifications to the local
+          # jsonl, post-run save no-op'd, next run restored the same
+          # April 30 snapshot. The 08 script silently re-classified the
+          # full ~7k active deck every cron for ~5 weeks. Cost was hidden
+          # on paid Gemini (~6 min classify, fit in 30 min job timeout).
+          # Free-tier rate limits then pushed classify to ~50 min and the
+          # job started cancelling at the 30 min timeout boundary on
+          # 2026-06-02.
+          #
+          # Fix: per-run primary key (always unique, save always runs) +
+          # prefix restore-keys (pulls newest matching cache). Bump to v2
+          # so the broken v1 cache isn't picked up via the old restore-key.
+          key: predictopoly-active-pipeline-v2-${{ github.run_id }}
           restore-keys: |
-            predictopoly-active-pipeline-
+            predictopoly-active-pipeline-v2-
 
       - name: Promote just-closed actives into past deck (10)
         # MUST run before 07: 10 reads the previous run's
