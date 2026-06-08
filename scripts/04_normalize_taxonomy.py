@@ -13,56 +13,14 @@ celebrity/culture territory.
 
 import json
 import re
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _taxonomy import CANONICAL, VALID_TOPS, SUB_TO_PARENT  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 WEB = REPO / "web" / "data"
-
-# Canonical taxonomy: top-level -> list of valid subs
-CANONICAL = {
-    "US Politics": [
-        "Presidential Elections", "Nominations & Primaries",
-        "Policy & Governance", "Appointments",
-    ],
-    "World Politics": [
-        "Non-US Elections", "International Relations & Conflicts",
-    ],
-    "Economy & Finance": [
-        "Monetary Policy", "Macroeconomics", "Financial Markets",
-    ],
-    "AI & Tech": [
-        # AI Regulation merged into Tech Companies (only 26 markets, mostly
-        # about tech-regulation of the same companies anyway).
-        "Model Releases & Benchmarks", "Tech Companies",
-    ],
-    "Crypto": [
-        # Speculation = pure price-target gambling shape ("BTC hit $100k by Y").
-        # Default-excluded from Hot picks - terrible first impression for fresh
-        # users since you can't calibrate "what will Bitcoin do" without domain
-        # knowledge or insider info. The remaining Price Predictions are real
-        # event questions (Satoshi reveal, USDC/USDT flip, MicroStrategy buys).
-        "Price Predictions", "Speculation", "Protocol & Launches", "Crypto Regulation",
-    ],
-    "Sports": [
-        "NFL", "NBA", "MLB", "NHL", "Global Soccer", "Combat Sports",
-        "Tennis", "F1 & Motorsport", "Olympics & Multi-sport",
-        # eSports moved here from Culture & Media - these are competitive
-        # match outcomes, same shape as NBA/NFL questions.
-        "eSports",
-        "Other Sports",
-    ],
-    "Culture & Media": [
-        "Movies, TV & Awards", "Social Media", "Celebrity & Events",
-        # Soundbites = "Will X say 'Y' during Z?", "Will X tweet 80-99 times?",
-        # "Will X wear Y?" - performative meme markets that aren't really about
-        # the topic on the surface. Default-excluded from Hot picks in the UI.
-        "Soundbites",
-    ],
-    "Science": [
-        "Space", "Weather & Disasters", "Health & Science",
-    ],
-    "Miscellaneous": ["Unclassified"],
-}
 
 # Pattern-based sweep into Culture & Media > Soundbites. Runs FIRST so it
 # overrides whatever the classifier chose - the question shape ("X says Y") is
@@ -115,11 +73,7 @@ TOPIC_SWEEPS = [
     ), ("Sports", "NFL")),
 ]
 
-# Build reverse map: sub-name -> parent top
-SUB_TO_PARENT = {}
-for parent, subs in CANONICAL.items():
-    for sub in subs:
-        SUB_TO_PARENT[sub] = parent
+# SUB_TO_PARENT comes from _taxonomy module above.
 
 # Manual fixes for common classifier typos / near-misses
 ALIASES = {
@@ -186,7 +140,7 @@ SUB_ALIASES = {
     ("Science", "Unclassified"): ("Science", "Health & Science"),
 }
 
-VALID_TOPS = set(CANONICAL.keys())
+# VALID_TOPS comes from _taxonomy module above.
 
 # Curated allowlist for the "Hot picks" preset. One ID per line. Built by
 # scripts/hot_pick_prompt.md being scored by Gemini 2.5 Pro against ~750

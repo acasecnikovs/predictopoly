@@ -14,6 +14,9 @@ import pandas as pd
 import google.generativeai as genai
 from google.api_core import exceptions as gexc
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _taxonomy import TAXONOMY, validate_classification  # noqa: E402
+
 REPO = Path(__file__).resolve().parent.parent
 DATA = REPO / "data"
 PROGRESS = DATA / "classification_progress.jsonl"
@@ -24,60 +27,8 @@ SLEEP_BETWEEN = 0.5
 MAX_RETRIES = 8  # bigger window since 2.5-flash hits per-minute limits harder
 MODEL = "gemini-2.5-flash-lite"
 
-TAXONOMY = """
-US Politics:
-  - Presidential Elections: US presidential races, popular vote, inauguration, state-level presidential results
-  - Nominations & Primaries: Party nominations, VP picks, primary outcomes, candidate dropouts
-  - Policy & Governance: Legislation, government shutdowns, legal processes involving politicians, executive actions
-  - Appointments: Federal position nominations and confirmations (Fed chair, cabinet, SCOTUS, ambassadors)
-
-World Politics:
-  - Non-US Elections: Presidential, PM, parliamentary elections outside the US
-  - International Relations & Conflicts: Military actions, ceasefires, diplomacy, foreign leadership changes, wars
-
-Economy & Finance:
-  - Monetary Policy: Fed/central bank rate decisions and statements
-  - Macroeconomics: Inflation, jobs reports, GDP, recession, national debt
-  - Financial Markets: Stock indices, commodities, traditional assets, equities
-
-AI & Tech:
-  - Model Releases & Benchmarks: New model launches, benchmark scores, capability milestones (GPT, Claude, Gemini, etc.)
-  - Tech Companies: Product launches, exec changes, acquisitions, IPOs in tech (non-crypto)
-  - AI Regulation: Government actions, policy, legislation targeting AI
-
-Crypto:
-  - Price Predictions: BTC, ETH, altcoin prices hitting thresholds
-  - Speculation: Short-horizon up/down bets, ticker-vs-dollar-threshold gambles, generic price-direction wagers without a specific event hook
-  - Protocol & Launches: Token launches, FDV, airdrops, NFT floors, exchange volumes
-  - Crypto Regulation: Government bans, legislation, ETF approvals
-
-Sports:
-  - NFL: National Football League games, Super Bowl, player events
-  - NBA: National Basketball Association games, Finals, player awards
-  - MLB: Major League Baseball games, World Series
-  - NHL: National Hockey League games, Stanley Cup, player awards
-  - Global Soccer: EPL, La Liga, Champions League, World Cup, other soccer leagues
-  - Combat Sports: Boxing, MMA, UFC
-  - Tennis: Grand Slams, ATP, WTA events
-  - F1 & Motorsport: Formula 1, NASCAR, motorsport events
-  - Olympics & Multi-sport: Olympics, world championships, multi-sport events
-  - eSports: Pro gaming tournaments, eSports events
-  - Other Sports: College sports, cricket, golf, darts, anything sports not listed above
-
-Culture & Media:
-  - Movies, TV & Awards: Box office, films, TV shows, Oscars, Emmys, awards
-  - Social Media: Platform events, internet policy, app bans, social media leadership
-  - Soundbites: Will-X-say-Y markets, public-figure phrase counts, livestream catchphrase bets
-  - Celebrity & Events: Celebrity-related events, public figure drama, non-political
-
-Science:
-  - Space: SpaceX, NASA, space exploration, rocket launches
-  - Weather & Disasters: Weather forecasts, hurricanes, earthquakes, natural disasters
-  - Health & Science: Medical research, pandemics, physics, general science
-
-Miscellaneous:
-  - Unclassified: Genuinely unclassifiable (coin tosses, pure novelty, unclear meaning)
-"""
+# TAXONOMY + validate_classification imported from scripts/_taxonomy.py.
+# Single source of truth shared with 04, 08, 09.
 
 
 def build_prompt(batch):
@@ -129,40 +80,6 @@ def classify_batch(model, batch):
     raise RuntimeError(f"classify_batch failed after {MAX_RETRIES} retries: {last_err}")
 
 
-def _parse_whitelist(taxonomy_str):
-    """Build {cat: set(subs)} from the TAXONOMY string (same format as 08)."""
-    cats = {}
-    current = None
-    for line in taxonomy_str.splitlines():
-        if not line.strip():
-            continue
-        if not line.startswith(" "):
-            stripped = line.strip()
-            if stripped.endswith(":"):
-                current = stripped[:-1].strip()
-                cats.setdefault(current, set())
-        elif line.lstrip().startswith("- ") and current is not None:
-            sub = line.lstrip()[2:].split(":", 1)[0].strip()
-            cats[current].add(sub)
-    return cats
-
-
-_TAXONOMY_WHITELIST = None
-
-
-def _validate_against_taxonomy(cat, sub):
-    """Mirror of 08's validate_classification. Hallucinated cat/sub pairs
-    get force-mapped to Miscellaneous / Unclassified before they ever
-    land in the past-side progress jsonl.
-    """
-    global _TAXONOMY_WHITELIST
-    if _TAXONOMY_WHITELIST is None:
-        _TAXONOMY_WHITELIST = _parse_whitelist(TAXONOMY)
-    if cat in _TAXONOMY_WHITELIST and sub in _TAXONOMY_WHITELIST[cat]:
-        return cat, sub
-    return "Miscellaneous", "Unclassified"
-
-
 def main():
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -201,7 +118,7 @@ def main():
                 continue
 
             for r, mid in zip(results, batch_ids):
-                cat, sub = _validate_against_taxonomy(r.get("cat", ""), r.get("sub", ""))
+                cat, sub = validate_classification(r.get("cat", ""), r.get("sub", ""))
                 rec = {"id": str(mid), "cat": cat, "sub": sub}
                 f.write(json.dumps(rec) + "\n")
             f.flush()

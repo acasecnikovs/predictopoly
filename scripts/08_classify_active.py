@@ -31,6 +31,14 @@ from pathlib import Path
 import pandas as pd
 from openai import OpenAI, RateLimitError
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _taxonomy import (  # noqa: E402
+    TAXONOMY,
+    CANONICAL,
+    compact_taxonomy,
+    validate_classification,
+)
+
 REPO = Path(__file__).resolve().parent.parent
 DATA = REPO / "data"
 INPUT = DATA / "active_markets.parquet"
@@ -54,122 +62,13 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 # the compact prompt below, each request stays around 4k TPM.
 MAX_OUTPUT_TOKENS = 2500
 
-# Taxonomy intentionally duplicated rather than imported. If 02 ever drifts
-# we want a deliberate sync, not silent inheritance.
-TAXONOMY = """
-US Politics:
-  - Presidential Elections: US presidential races, popular vote, inauguration, state-level presidential results
-  - Nominations & Primaries: Party nominations, VP picks, primary outcomes, candidate dropouts
-  - Policy & Governance: Legislation, government shutdowns, legal processes involving politicians, executive actions
-  - Appointments: Federal position nominations and confirmations (Fed chair, cabinet, SCOTUS, ambassadors)
-
-World Politics:
-  - Non-US Elections: Presidential, PM, parliamentary elections outside the US
-  - International Relations & Conflicts: Military actions, ceasefires, diplomacy, foreign leadership changes, wars
-
-Economy & Finance:
-  - Monetary Policy: Fed/central bank rate decisions and statements
-  - Macroeconomics: Inflation, jobs reports, GDP, recession, national debt
-  - Financial Markets: Stock indices, commodities, traditional assets, equities
-
-AI & Tech:
-  - Model Releases & Benchmarks: New model launches, benchmark scores, capability milestones (GPT, Claude, Gemini, etc.)
-  - Tech Companies: Product launches, exec changes, acquisitions, IPOs in tech (non-crypto)
-  - AI Regulation: Government actions, policy, legislation targeting AI
-
-Crypto:
-  - Price Predictions: BTC, ETH, altcoin prices hitting thresholds
-  - Speculation: Short-horizon up/down bets, ticker-vs-dollar-threshold gambles, generic price-direction wagers without a specific event hook
-  - Protocol & Launches: Token launches, FDV, airdrops, NFT floors, exchange volumes
-  - Crypto Regulation: Government bans, legislation, ETF approvals
-
-Sports:
-  - NFL: National Football League games, Super Bowl, player events
-  - NBA: National Basketball Association games, Finals, player awards
-  - MLB: Major League Baseball games, World Series
-  - NHL: National Hockey League games, Stanley Cup, player awards
-  - Global Soccer: EPL, La Liga, Champions League, World Cup, other soccer leagues
-  - Combat Sports: Boxing, MMA, UFC
-  - Tennis: Grand Slams, ATP, WTA events
-  - F1 & Motorsport: Formula 1, NASCAR, motorsport events
-  - Olympics & Multi-sport: Olympics, world championships, multi-sport events
-  - eSports: Pro gaming tournaments, eSports events
-  - Other Sports: College sports, cricket, golf, darts, anything sports not listed above
-
-Culture & Media:
-  - Movies, TV & Awards: Box office, films, TV shows, Oscars, Emmys, awards
-  - Social Media: Platform events, internet policy, app bans, social media leadership
-  - Soundbites: Will-X-say-Y markets, public-figure phrase counts, livestream catchphrase bets
-  - Celebrity & Events: Celebrity-related events, public figure drama, non-political
-
-Science:
-  - Space: SpaceX, NASA, space exploration, rocket launches
-  - Weather & Disasters: Weather forecasts, hurricanes, earthquakes, natural disasters
-  - Health & Science: Medical research, pandemics, physics, general science
-
-Miscellaneous:
-  - Unclassified: Genuinely unclassifiable (coin tosses, pure novelty, unclear meaning)
-"""
-
-
-def parse_taxonomy(taxonomy_str):
-    """Build {category: set(subcategories)} whitelist from the TAXONOMY string.
-
-    Top-level categories are lines ending in ':' with no leading whitespace.
-    Subcategories are lines starting with '  - ' under the current category.
-    Output is the closed set the classifier is allowed to use. Any model
-    output not matching exactly falls back to Miscellaneous / Unclassified.
-    """
-    cats = {}
-    current = None
-    for line in taxonomy_str.splitlines():
-        if not line.strip():
-            continue
-        if not line.startswith(" "):
-            stripped = line.strip()
-            if stripped.endswith(":"):
-                current = stripped[:-1].strip()
-                cats.setdefault(current, set())
-        elif line.lstrip().startswith("- ") and current is not None:
-            sub_part = line.lstrip()[2:]
-            sub = sub_part.split(":", 1)[0].strip()
-            cats[current].add(sub)
-    return cats
-
-
-TAXONOMY_WHITELIST = None  # populated in main()
-
-
-def compact_taxonomy(whitelist=None):
-    """One line per category: 'Category: Sub1, Sub2, ...'.
-
-    Used in the request prompt to shrink token cost from ~3.5k (full
-    descriptions in TAXONOMY string) to ~200. The 8b model classifies
-    fine without the per-subcategory blurbs - the names are descriptive
-    enough on their own.
-    """
-    wl = whitelist if whitelist is not None else parse_taxonomy(TAXONOMY)
-    lines = []
-    for cat, subs in wl.items():
-        lines.append(f"{cat}: {', '.join(sorted(subs))}")
-    return "\n".join(lines)
-
-
-def validate_classification(cat, sub):
-    """Force out-of-taxonomy results into Miscellaneous / Unclassified.
-
-    The active-deck UI groups by category name, so a hallucinated cat like
-    'Tennis' or 'Global Soccer' (which are actually subcategories under
-    Sports) shows up as a new top-level bucket and pollutes the deck.
-    """
-    if TAXONOMY_WHITELIST and cat in TAXONOMY_WHITELIST and sub in TAXONOMY_WHITELIST[cat]:
-        return cat, sub
-    return "Miscellaneous", "Unclassified"
+# TAXONOMY, CANONICAL, compact_taxonomy, validate_classification all live in
+# scripts/_taxonomy.py. Single source of truth shared with 02, 04, 09.
 
 
 def build_prompt(batch):
     questions_block = "\n".join(f"{i+1}. {q}" for i, q in enumerate(batch))
-    tax = compact_taxonomy(TAXONOMY_WHITELIST)
+    tax = compact_taxonomy()
     return f"""Classify each Polymarket question into the taxonomy below.
 Return ONLY a JSON array of {len(batch)} objects, one per question in order.
 Each object: {{"i": <question-number>, "cat": "<category>", "sub": "<subcategory>"}}
@@ -229,11 +128,9 @@ def main():
         sys.exit("GROQ_API_KEY not set")
     client = OpenAI(api_key=api_key, base_url=GROQ_BASE_URL)
 
-    global TAXONOMY_WHITELIST
-    TAXONOMY_WHITELIST = parse_taxonomy(TAXONOMY)
     print(
-        f"Taxonomy whitelist: {len(TAXONOMY_WHITELIST)} categories, "
-        f"{sum(len(s) for s in TAXONOMY_WHITELIST.values())} subcategories",
+        f"Taxonomy: {len(CANONICAL)} categories, "
+        f"{sum(len(s) for s in CANONICAL.values())} subcategories",
         file=sys.stderr,
     )
 
@@ -252,7 +149,7 @@ def main():
             for line in f:
                 r = json.loads(line)
                 cat, sub = r.get("cat", ""), r.get("sub", "")
-                if cat in TAXONOMY_WHITELIST and sub in TAXONOMY_WHITELIST[cat]:
+                if cat in CANONICAL and sub in CANONICAL[cat]:
                     done_ids.add(str(r["id"]))
                 else:
                     legacy_drops += 1

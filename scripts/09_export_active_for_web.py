@@ -37,6 +37,9 @@ from pathlib import Path
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _taxonomy import CANONICAL, VALID_TOPS, SUB_TO_PARENT  # noqa: E402
+
 REPO = Path(__file__).resolve().parent.parent
 DATA = REPO / "data"
 WEB = REPO / "web" / "data"
@@ -149,27 +152,8 @@ def yes_label(outcomes_json):
         return ""
     return first
 
-# --- normalization, ported from 04_normalize_taxonomy.py ---
-
-CANONICAL = {
-    "US Politics": ["Presidential Elections", "Nominations & Primaries",
-                    "Policy & Governance", "Appointments"],
-    "World Politics": ["Non-US Elections", "International Relations & Conflicts"],
-    "Economy & Finance": ["Monetary Policy", "Macroeconomics", "Financial Markets"],
-    "AI & Tech": ["Model Releases & Benchmarks", "Tech Companies"],
-    "Crypto": ["Price Predictions", "Speculation", "Protocol & Launches",
-               "Crypto Regulation"],
-    "Sports": ["NFL", "NBA", "MLB", "NHL", "Global Soccer", "Combat Sports",
-               "Tennis", "F1 & Motorsport", "Olympics & Multi-sport",
-               "eSports", "Other Sports"],
-    "Culture & Media": ["Movies, TV & Awards", "Social Media",
-                        "Celebrity & Events", "Soundbites"],
-    "Science": ["Space", "Weather & Disasters", "Health & Science"],
-    "Miscellaneous": ["Unclassified"],
-}
-
-SUB_TO_PARENT = {sub: parent for parent, subs in CANONICAL.items() for sub in subs}
-VALID_TOPS = set(CANONICAL.keys())
+# CANONICAL + VALID_TOPS + SUB_TO_PARENT imported at top of file from
+# scripts/_taxonomy.py. Single source of truth shared with 02, 04, 08.
 
 ALIASES = {
     "College sports": ("Sports", "Other Sports"),
