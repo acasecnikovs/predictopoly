@@ -47,6 +47,7 @@ AI & Tech:
 
 Crypto:
   - Price Predictions: BTC, ETH, altcoin prices hitting thresholds
+  - Speculation: Short-horizon up/down bets, ticker-vs-dollar-threshold gambles, generic price-direction wagers without a specific event hook
   - Protocol & Launches: Token launches, FDV, airdrops, NFT floors, exchange volumes
   - Crypto Regulation: Government bans, legislation, ETF approvals
 
@@ -60,12 +61,13 @@ Sports:
   - Tennis: Grand Slams, ATP, WTA events
   - F1 & Motorsport: Formula 1, NASCAR, motorsport events
   - Olympics & Multi-sport: Olympics, world championships, multi-sport events
+  - eSports: Pro gaming tournaments, eSports events
   - Other Sports: College sports, cricket, golf, darts, anything sports not listed above
 
 Culture & Media:
   - Movies, TV & Awards: Box office, films, TV shows, Oscars, Emmys, awards
   - Social Media: Platform events, internet policy, app bans, social media leadership
-  - eSports: Pro gaming tournaments, eSports events
+  - Soundbites: Will-X-say-Y markets, public-figure phrase counts, livestream catchphrase bets
   - Celebrity & Events: Celebrity-related events, public figure drama, non-political
 
 Science:

@@ -314,7 +314,11 @@ def normalize(records):
                 continue
             if s in SUB_TO_PARENT and SUB_TO_PARENT[s] == c:
                 continue
-            m["s"] = "Unclassified" if c == "Miscellaneous" else s
+            # cat is canonical but sub is junk and no alias matched. Don't
+            # leave a hallucinated sub under a valid cat - the deck filter
+            # would show it as a new bucket. Force to Misc/Unclassified.
+            m["c"], m["s"] = "Miscellaneous", "Unclassified"
+            dropped += 1
             continue
         if c in ALIASES:
             m["c"], m["s"] = ALIASES[c]

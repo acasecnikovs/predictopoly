@@ -6,8 +6,8 @@
   },
   "Sports": {
     "slug": "sports",
-    "n": 2303,
-    "bytes": 410685
+    "n": 2299,
+    "bytes": 409982
   },
   "Crypto": {
     "slug": "crypto",
@@ -26,8 +26,8 @@
   },
   "Miscellaneous": {
     "slug": "miscellaneous",
-    "n": 32,
-    "bytes": 5838
+    "n": 36,
+    "bytes": 6571
   },
   "Economy & Finance": {
     "slug": "economy-and-finance",
