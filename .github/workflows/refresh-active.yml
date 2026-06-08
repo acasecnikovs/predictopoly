@@ -29,12 +29,14 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    # Healthy daily runs finish in 10-13 min. Bumped from 30 to 60 to
-    # absorb a cold-cache rebuild on free-tier Gemini (full ~7k
-    # classifications at throttled RPM lands around 50 min). Once the
-    # cache is reseeded the budget is unused on healthy days; GHA only
-    # bills actual runtime.
-    timeout-minutes: 60
+    # Healthy daily runs finish in 10-13 min. Bumped to 90 to absorb a
+    # cold-cache rebuild on free-tier Groq llama-3.1-8b: per-batch RPM
+    # throttling sets the floor at ~30s per 80-question batch and a
+    # full ~8k market reseed needs ~105 batches, landing classify
+    # around 55 min. The previous 60-min cap hit at batch 93/105 with
+    # 5 min of work left. 90 gives a real safety margin for the cold
+    # seed; once cache is populated, daily delta runs are sub-15 min.
+    timeout-minutes: 90
     # Opt into Node.js 24 for actions/* now to silence the Node20
     # deprecation warning (June 2026 forced cutover). All actions we use
     # support it.
