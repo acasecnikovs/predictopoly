@@ -1,0 +1,28 @@
+name: deploy-only
+
+# Manual-trigger workflow that ships whatever is in web/ on main to
+# Cloudflare Pages, with no classify/fetch/export. Use it when the
+# bundle in the repo is already clean and you just need to land it
+# on the live site without going through refresh-active (which can
+# fail on the classify step and skip its own deploy).
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler@latest pages deploy web --project-name=predictopoly --branch=main --commit-dirty=true
