@@ -280,14 +280,15 @@ def main():
             fixed += 1
 
         if c in VALID_TOPS:
-            # Top is valid. Check sub is valid for that top.
             if s in CANONICAL[c]:
                 continue
-            # sub is wrong for this top - try to keep top, relabel sub
             if s in SUB_TO_PARENT and SUB_TO_PARENT[s] == c:
-                continue  # already fine
-            # unknown sub - fall through to miscellaneous
-            m["s"] = "Unclassified" if c == "Miscellaneous" else s
+                continue
+            # Canonical cat but unknown sub - don't leave a hallucinated
+            # sub label under a valid cat (deck filter would render it as
+            # a brand-new bucket). Force to Misc/Unclassified.
+            m["c"], m["s"] = "Miscellaneous", "Unclassified"
+            dropped += 1
             continue
 
         # Top is not valid. Try to remap.
