@@ -57,7 +57,7 @@ jobs:
       - name: Install pip deps
         run: |
           python -m pip install --upgrade pip
-          pip install pandas pyarrow google-generativeai
+          pip install pandas pyarrow google-generativeai openai
 
       - name: Restore pipeline caches
         uses: actions/cache@v4
@@ -121,7 +121,11 @@ jobs:
 
       - name: Classify (08, incremental)
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Active-side switched from Gemini flash-lite to Groq llama-3.3
+          # on 2026-06-07 after free-tier Gemini RPD ran out daily. Past
+          # deck (02) still on Gemini, classified offline so the quota
+          # there doesn't matter for CI.
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python scripts/08_classify_active.py
 
       - name: Export to web bundle (09)

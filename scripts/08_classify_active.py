@@ -6,16 +6,20 @@ Forked from 02_classify_markets.py with three changes:
 - Progress file is data/active_classification_progress.jsonl (separate from
   resolved progress so the two pipelines never stomp each other)
 
-Same model, same batch size, same taxonomy, same prompt. Parity matters - the
-resolved-side category distribution is what the deck UI shows; active markets
-must classify under identical rules so the same filters work on both.
+Same batch size, same taxonomy, same prompt as 02. Model differs - active
+uses Groq llama-3.3-70b after 2026-06-07 Gemini free-tier RPD became
+insufficient for the daily ~7k cold-cache reseed and runs timed out at
+30/60 min boundaries. Past-deck classification still on Gemini. Category
+distributions across the two sides may drift slightly because of model
+differences; the deck UI filters on category name which is identical
+either way, so functional parity holds.
 
 Re-run-safe via the progress file: dedups against already-classified ids on
 each invocation. Fits the daily-cron model since most active markets are
 already classified from prior runs.
 
 Usage:
-    GEMINI_API_KEY=... python scripts/08_classify_active.py
+    GROQ_API_KEY=... python scripts/08_classify_active.py
 """
 
 import json
@@ -25,8 +29,7 @@ import time
 from pathlib import Path
 
 import pandas as pd
-import google.generativeai as genai
-from google.api_core import exceptions as gexc
+from openai import OpenAI, RateLimitError
 
 REPO = Path(__file__).resolve().parent.parent
 DATA = REPO / "data"
@@ -37,7 +40,8 @@ OUTPUT = DATA / "active_markets_classified.parquet"
 BATCH_SIZE = 200
 SLEEP_BETWEEN = 0.5
 MAX_RETRIES = 8
-MODEL = "gemini-2.5-flash-lite"
+MODEL = "llama-3.3-70b-versatile"
+GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 # Taxonomy intentionally duplicated rather than imported. If 02 ever drifts
 # we want a deliberate sync, not silent inheritance.
@@ -123,13 +127,17 @@ def parse_response(text, expected_n):
     return data
 
 
-def classify_batch(model, batch):
+def classify_batch(client, batch):
     last_err = None
     for attempt in range(MAX_RETRIES):
         try:
-            resp = model.generate_content(build_prompt(batch))
-            return parse_response(resp.text, len(batch))
-        except gexc.ResourceExhausted as e:
+            resp = client.chat.completions.create(
+                model=MODEL,
+                messages=[{"role": "user", "content": build_prompt(batch)}],
+                temperature=0,
+            )
+            return parse_response(resp.choices[0].message.content, len(batch))
+        except RateLimitError as e:
             wait = 30 * (attempt + 1)
             print(f"  rate limit, sleeping {wait}s... ({e.__class__.__name__})", file=sys.stderr)
             time.sleep(wait)
@@ -142,11 +150,10 @@ def classify_batch(model, batch):
 
 
 def main():
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        sys.exit("GEMINI_API_KEY not set")
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(MODEL)
+        sys.exit("GROQ_API_KEY not set")
+    client = OpenAI(api_key=api_key, base_url=GROQ_BASE_URL)
 
     df = pd.read_parquet(INPUT)
     print(f"Loaded {len(df)} active markets", file=sys.stderr)
@@ -172,7 +179,7 @@ def main():
 
             t0 = time.time()
             try:
-                results = classify_batch(model, batch_questions)
+                results = classify_batch(client, batch_questions)
             except Exception as e:
                 print(f"Batch {b+1}/{total_batches} FAILED: {e}", file=sys.stderr)
                 continue
