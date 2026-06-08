@@ -37,7 +37,7 @@ INPUT = DATA / "active_markets.parquet"
 PROGRESS = DATA / "active_classification_progress.jsonl"
 OUTPUT = DATA / "active_markets_classified.parquet"
 
-BATCH_SIZE = 100
+BATCH_SIZE = 80
 SLEEP_BETWEEN = 0.5
 MAX_RETRIES = 8
 # Switched 70b -> 8b-instant on 2026-06-08 after the 70b free-tier TPD
@@ -47,10 +47,12 @@ MAX_RETRIES = 8
 # taxonomy classification is fine - the task is not reasoning-heavy.
 MODEL = "llama-3.1-8b-instant"
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-# Llama on Groq defaults to ~4k max_tokens which truncates the JSON
-# response for a 100-item batch (~3-4k output tokens). Lift the cap so
-# the JSON always closes.
-MAX_OUTPUT_TOKENS = 16384
+# 8b-instant free has a tight per-minute cap: 6000 TPM total, counted
+# as input_tokens + max_tokens. With BATCH_SIZE=80, output is ~2.4k
+# tokens (~30 per classification), so max_tokens=2500 gives the model
+# enough room without blowing the per-request budget. Combined with
+# the compact prompt below, each request stays around 4k TPM.
+MAX_OUTPUT_TOKENS = 2500
 
 # Taxonomy intentionally duplicated rather than imported. If 02 ever drifts
 # we want a deliberate sync, not silent inheritance.
@@ -138,6 +140,21 @@ def parse_taxonomy(taxonomy_str):
 TAXONOMY_WHITELIST = None  # populated in main()
 
 
+def compact_taxonomy(whitelist=None):
+    """One line per category: 'Category: Sub1, Sub2, ...'.
+
+    Used in the request prompt to shrink token cost from ~3.5k (full
+    descriptions in TAXONOMY string) to ~200. The 8b model classifies
+    fine without the per-subcategory blurbs - the names are descriptive
+    enough on their own.
+    """
+    wl = whitelist if whitelist is not None else parse_taxonomy(TAXONOMY)
+    lines = []
+    for cat, subs in wl.items():
+        lines.append(f"{cat}: {', '.join(sorted(subs))}")
+    return "\n".join(lines)
+
+
 def validate_classification(cat, sub):
     """Force out-of-taxonomy results into Miscellaneous / Unclassified.
 
@@ -152,19 +169,19 @@ def validate_classification(cat, sub):
 
 def build_prompt(batch):
     questions_block = "\n".join(f"{i+1}. {q}" for i, q in enumerate(batch))
+    tax = compact_taxonomy(TAXONOMY_WHITELIST)
     return f"""Classify each Polymarket question into the taxonomy below.
 Return ONLY a JSON array of {len(batch)} objects, one per question in order.
 Each object: {{"i": <question-number>, "cat": "<category>", "sub": "<subcategory>"}}
 
-STRICT RULES:
-- "cat" MUST be one of the top-level category names from the taxonomy below (the lines ending with ':'). Examples: "Sports", "Crypto", "US Politics". NEVER a subcategory.
-- "sub" MUST be one of the subcategory names listed under that exact category. The subcategory NAME is the short label before the colon on its line. Example: under "Sports:", a line "- NBA: National Basketball Association games, Finals, player awards" means the valid sub is "NBA", NOT the description after the colon.
-- "sub" NEVER repeats the category name, NEVER copies the description text, NEVER invents a new label.
-- If unsure, default to {{"cat": "Miscellaneous", "sub": "Unclassified"}}.
-- Any value outside the taxonomy will be rejected and force-mapped to Miscellaneous / Unclassified, so do not guess - pick the closest legitimate pair or fall back.
+Rules:
+- "cat" = one of the category names (left side of colon).
+- "sub" = one of that category's listed subcategories (right side).
+- Never invent a category or subcategory.
+- If unsure: {{"cat": "Miscellaneous", "sub": "Unclassified"}}.
 
 TAXONOMY:
-{TAXONOMY}
+{tax}
 
 QUESTIONS:
 {questions_block}
@@ -281,9 +298,17 @@ def main():
 
     print("\nMerging classifications into parquet...", file=sys.stderr)
     rows = []
-    with PROGRESS.open() as f:
-        for line in f:
-            rows.append(json.loads(line))
+    if PROGRESS.exists():
+        with PROGRESS.open() as f:
+            for line in f:
+                rows.append(json.loads(line))
+    if not rows:
+        # Every batch failed and there was no prior progress to merge.
+        # Bail loudly rather than crash the downstream merge with a
+        # KeyError on 'id' from an empty DataFrame. The workflow fails
+        # this step and skips export/deploy, leaving yesterday's bundle
+        # on the site, which is the correct behavior.
+        sys.exit("No classifications to merge (all batches failed and no prior cache). Aborting.")
     cls_df = pd.DataFrame(rows).drop_duplicates(subset=["id"], keep="last")
     df = df.drop(columns=["category"]).merge(cls_df, on="id", how="left")
     df = df.rename(columns={"cat": "category", "sub": "subcategory"})
