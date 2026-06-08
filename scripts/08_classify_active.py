@@ -99,13 +99,58 @@ Miscellaneous:
 """
 
 
+def parse_taxonomy(taxonomy_str):
+    """Build {category: set(subcategories)} whitelist from the TAXONOMY string.
+
+    Top-level categories are lines ending in ':' with no leading whitespace.
+    Subcategories are lines starting with '  - ' under the current category.
+    Output is the closed set the classifier is allowed to use. Any model
+    output not matching exactly falls back to Miscellaneous / Unclassified.
+    """
+    cats = {}
+    current = None
+    for line in taxonomy_str.splitlines():
+        if not line.strip():
+            continue
+        if not line.startswith(" "):
+            stripped = line.strip()
+            if stripped.endswith(":"):
+                current = stripped[:-1].strip()
+                cats.setdefault(current, set())
+        elif line.lstrip().startswith("- ") and current is not None:
+            sub_part = line.lstrip()[2:]
+            sub = sub_part.split(":", 1)[0].strip()
+            cats[current].add(sub)
+    return cats
+
+
+TAXONOMY_WHITELIST = None  # populated in main()
+
+
+def validate_classification(cat, sub):
+    """Force out-of-taxonomy results into Miscellaneous / Unclassified.
+
+    The active-deck UI groups by category name, so a hallucinated cat like
+    'Tennis' or 'Global Soccer' (which are actually subcategories under
+    Sports) shows up as a new top-level bucket and pollutes the deck.
+    """
+    if TAXONOMY_WHITELIST and cat in TAXONOMY_WHITELIST and sub in TAXONOMY_WHITELIST[cat]:
+        return cat, sub
+    return "Miscellaneous", "Unclassified"
+
+
 def build_prompt(batch):
     questions_block = "\n".join(f"{i+1}. {q}" for i, q in enumerate(batch))
     return f"""Classify each Polymarket question into the taxonomy below.
 Return ONLY a JSON array of {len(batch)} objects, one per question in order.
 Each object: {{"i": <question-number>, "cat": "<category>", "sub": "<subcategory>"}}
-Use the EXACT category and subcategory names from the taxonomy. If truly
-unclassifiable, use Miscellaneous / Unclassified.
+
+STRICT RULES:
+- "cat" MUST be one of the top-level category names from the taxonomy below (the lines ending with ':'). Examples: "Sports", "Crypto", "US Politics". NEVER a subcategory.
+- "sub" MUST be one of the subcategory names listed under that exact category. The subcategory NAME is the short label before the colon on its line. Example: under "Sports:", a line "- NBA: National Basketball Association games, Finals, player awards" means the valid sub is "NBA", NOT the description after the colon.
+- "sub" NEVER repeats the category name, NEVER copies the description text, NEVER invents a new label.
+- If unsure, default to {{"cat": "Miscellaneous", "sub": "Unclassified"}}.
+- Any value outside the taxonomy will be rejected and force-mapped to Miscellaneous / Unclassified, so do not guess - pick the closest legitimate pair or fall back.
 
 TAXONOMY:
 {TAXONOMY}
@@ -155,15 +200,38 @@ def main():
         sys.exit("GROQ_API_KEY not set")
     client = OpenAI(api_key=api_key, base_url=GROQ_BASE_URL)
 
+    global TAXONOMY_WHITELIST
+    TAXONOMY_WHITELIST = parse_taxonomy(TAXONOMY)
+    print(
+        f"Taxonomy whitelist: {len(TAXONOMY_WHITELIST)} categories, "
+        f"{sum(len(s) for s in TAXONOMY_WHITELIST.values())} subcategories",
+        file=sys.stderr,
+    )
+
     df = pd.read_parquet(INPUT)
     print(f"Loaded {len(df)} active markets", file=sys.stderr)
 
+    # Only count an id as done if its existing classification is still
+    # inside the current whitelist. Anything legacy or out-of-taxonomy
+    # gets re-classified automatically, which is the one-shot cleanup
+    # for the polluted state from Gemini-era runs (Tennis-as-category,
+    # Global-Soccer-as-category etc).
     done_ids = set()
+    legacy_drops = 0
     if PROGRESS.exists():
         with PROGRESS.open() as f:
             for line in f:
-                done_ids.add(str(json.loads(line)["id"]))
-        print(f"Resuming: {len(done_ids)} already classified", file=sys.stderr)
+                r = json.loads(line)
+                cat, sub = r.get("cat", ""), r.get("sub", "")
+                if cat in TAXONOMY_WHITELIST and sub in TAXONOMY_WHITELIST[cat]:
+                    done_ids.add(str(r["id"]))
+                else:
+                    legacy_drops += 1
+        print(
+            f"Resuming: {len(done_ids)} already classified "
+            f"({legacy_drops} out-of-taxonomy entries dropped, will re-classify)",
+            file=sys.stderr,
+        )
 
     remaining = df[~df["id"].isin(done_ids)].reset_index(drop=True)
     print(f"To classify: {len(remaining)}", file=sys.stderr)
@@ -185,7 +253,8 @@ def main():
                 continue
 
             for r, mid in zip(results, batch_ids):
-                rec = {"id": str(mid), "cat": r.get("cat", ""), "sub": r.get("sub", "")}
+                cat, sub = validate_classification(r.get("cat", ""), r.get("sub", ""))
+                rec = {"id": str(mid), "cat": cat, "sub": sub}
                 f.write(json.dumps(rec) + "\n")
             f.flush()
 
