@@ -133,12 +133,19 @@ jobs:
       - name: Export to web bundle (09)
         run: python scripts/09_export_active_for_web.py
 
-      - name: Re-export past deck (03) if promotions happened
+      - name: Re-export past deck (03 + 04) if promotions happened
         # Only useful when 10 actually appended rows. We detect that by
         # checking whether either of the two source parquets changed in
         # the working tree relative to HEAD. If yes, regenerate markets.json
         # + descriptions-*.json + slugs.json + taxonomy.json. If no, skip -
         # past bundle doesn't need a rebuild on quiet days.
+        #
+        # 04 normalizes the just-written markets.json against CANONICAL +
+        # SUB_ALIASES, force-mapping anything out-of-taxonomy to
+        # Miscellaneous / Unclassified and writing per-category shards.
+        # Without this step the resolved parquet's raw (cat, sub) pairs
+        # leak straight to the site, which is how Tennis-as-category and
+        # similar pollution hit production for weeks before 2026-06-08.
         run: |
           if git diff --quiet data/resolved_markets_classified.parquet \
                               data/lookback_prices.parquet \
@@ -147,6 +154,7 @@ jobs:
             exit 0
           fi
           python scripts/03_export_for_web.py
+          python scripts/04_normalize_taxonomy.py
 
       - name: Smoke check
         run: |

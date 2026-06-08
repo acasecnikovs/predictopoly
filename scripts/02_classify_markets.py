@@ -129,6 +129,40 @@ def classify_batch(model, batch):
     raise RuntimeError(f"classify_batch failed after {MAX_RETRIES} retries: {last_err}")
 
 
+def _parse_whitelist(taxonomy_str):
+    """Build {cat: set(subs)} from the TAXONOMY string (same format as 08)."""
+    cats = {}
+    current = None
+    for line in taxonomy_str.splitlines():
+        if not line.strip():
+            continue
+        if not line.startswith(" "):
+            stripped = line.strip()
+            if stripped.endswith(":"):
+                current = stripped[:-1].strip()
+                cats.setdefault(current, set())
+        elif line.lstrip().startswith("- ") and current is not None:
+            sub = line.lstrip()[2:].split(":", 1)[0].strip()
+            cats[current].add(sub)
+    return cats
+
+
+_TAXONOMY_WHITELIST = None
+
+
+def _validate_against_taxonomy(cat, sub):
+    """Mirror of 08's validate_classification. Hallucinated cat/sub pairs
+    get force-mapped to Miscellaneous / Unclassified before they ever
+    land in the past-side progress jsonl.
+    """
+    global _TAXONOMY_WHITELIST
+    if _TAXONOMY_WHITELIST is None:
+        _TAXONOMY_WHITELIST = _parse_whitelist(TAXONOMY)
+    if cat in _TAXONOMY_WHITELIST and sub in _TAXONOMY_WHITELIST[cat]:
+        return cat, sub
+    return "Miscellaneous", "Unclassified"
+
+
 def main():
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -167,7 +201,8 @@ def main():
                 continue
 
             for r, mid in zip(results, batch_ids):
-                rec = {"id": str(mid), "cat": r.get("cat", ""), "sub": r.get("sub", "")}
+                cat, sub = _validate_against_taxonomy(r.get("cat", ""), r.get("sub", ""))
+                rec = {"id": str(mid), "cat": cat, "sub": sub}
                 f.write(json.dumps(rec) + "\n")
             f.flush()
 
