@@ -37,11 +37,20 @@ INPUT = DATA / "active_markets.parquet"
 PROGRESS = DATA / "active_classification_progress.jsonl"
 OUTPUT = DATA / "active_markets_classified.parquet"
 
-BATCH_SIZE = 200
+BATCH_SIZE = 100
 SLEEP_BETWEEN = 0.5
 MAX_RETRIES = 8
-MODEL = "llama-3.3-70b-versatile"
+# Switched 70b -> 8b-instant on 2026-06-08 after the 70b free-tier TPD
+# of 100k blew up halfway through a cold reseed (~400k tokens needed
+# for full ~7k market pool with 5k-token batches). 8b-instant free has
+# 500k TPD, enough headroom for cold start + daily delta. Quality on
+# taxonomy classification is fine - the task is not reasoning-heavy.
+MODEL = "llama-3.1-8b-instant"
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+# Llama on Groq defaults to ~4k max_tokens which truncates the JSON
+# response for a 100-item batch (~3-4k output tokens). Lift the cap so
+# the JSON always closes.
+MAX_OUTPUT_TOKENS = 16384
 
 # Taxonomy intentionally duplicated rather than imported. If 02 ever drifts
 # we want a deliberate sync, not silent inheritance.
@@ -182,6 +191,7 @@ def classify_batch(client, batch):
                 model=MODEL,
                 messages=[{"role": "user", "content": build_prompt(batch)}],
                 temperature=0,
+                max_tokens=MAX_OUTPUT_TOKENS,
             )
             return parse_response(resp.choices[0].message.content, len(batch))
         except RateLimitError as e:
