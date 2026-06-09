@@ -142,22 +142,43 @@ def main():
     # gets re-classified automatically, which is the one-shot cleanup
     # for the polluted state from Gemini-era runs (Tennis-as-category,
     # Global-Soccer-as-category etc).
+    #
+    # Two sources for the already-done set, in priority order:
+    #   1. Yesterday's classified parquet (OUTPUT). This is committed to
+    #      git by the bot on every successful run, so a fresh CI runner
+    #      always sees the previous day's classifications without any
+    #      GHA cache. Kills the cold-seed problem - daily delta is
+    #      whatever's in INPUT but not in last_classified.
+    #   2. PROGRESS jsonl. Append-only resume log for the current run -
+    #      lets a single run pick up where the previous batch left off
+    #      if it crashed mid-loop. Less important now that OUTPUT is
+    #      the durable source, but still useful for intra-run resume.
     done_ids = set()
     legacy_drops = 0
+    if OUTPUT.exists():
+        prev = pd.read_parquet(OUTPUT)
+        for r in prev[["id", "category", "subcategory"]].itertuples(index=False):
+            cat, sub = r.category, r.subcategory
+            if cat in CANONICAL and sub in CANONICAL[cat]:
+                done_ids.add(str(r.id))
+            else:
+                legacy_drops += 1
+        print(
+            f"Seeded from {OUTPUT.name}: {len(done_ids)} classified "
+            f"({legacy_drops} legacy/out-of-taxonomy, will re-classify)",
+            file=sys.stderr,
+        )
     if PROGRESS.exists():
+        before = len(done_ids)
         with PROGRESS.open() as f:
             for line in f:
                 r = json.loads(line)
                 cat, sub = r.get("cat", ""), r.get("sub", "")
                 if cat in CANONICAL and sub in CANONICAL[cat]:
                     done_ids.add(str(r["id"]))
-                else:
-                    legacy_drops += 1
-        print(
-            f"Resuming: {len(done_ids)} already classified "
-            f"({legacy_drops} out-of-taxonomy entries dropped, will re-classify)",
-            file=sys.stderr,
-        )
+        added = len(done_ids) - before
+        if added:
+            print(f"Plus {added} from progress jsonl", file=sys.stderr)
 
     remaining = df[~df["id"].isin(done_ids)].reset_index(drop=True)
     print(f"To classify: {len(remaining)}", file=sys.stderr)
@@ -194,21 +215,39 @@ def main():
                 time.sleep(max(0, SLEEP_BETWEEN - elapsed))
 
     print("\nMerging classifications into parquet...", file=sys.stderr)
-    rows = []
+    # Three sources, layered:
+    #   1. yesterday's OUTPUT - durable, committed, has most ids
+    #   2. PROGRESS jsonl - today's fresh classifications, override yesterday
+    #   3. INPUT - today's fresh fetch, defines the row set in the new
+    #      parquet (drops ids that aren't active anymore)
+    #
+    # Anything that ends up with no category after layer 1+2 gets null;
+    # 09 will map it to Miscellaneous / Unclassified at export time.
+    cls_rows = []
+    if OUTPUT.exists():
+        prev = pd.read_parquet(OUTPUT)
+        for r in prev[["id", "category", "subcategory"]].itertuples(index=False):
+            cat, sub = r.category, r.subcategory
+            if pd.isna(cat) or pd.isna(sub):
+                continue
+            if cat in CANONICAL and sub in CANONICAL[cat]:
+                cls_rows.append({"id": str(r.id), "cat": cat, "sub": sub})
     if PROGRESS.exists():
         with PROGRESS.open() as f:
             for line in f:
-                rows.append(json.loads(line))
-    if not rows:
-        # Every batch failed and there was no prior progress to merge.
-        # Bail loudly rather than crash the downstream merge with a
-        # KeyError on 'id' from an empty DataFrame. The workflow fails
-        # this step and skips export/deploy, leaving yesterday's bundle
-        # on the site, which is the correct behavior.
-        sys.exit("No classifications to merge (all batches failed and no prior cache). Aborting.")
-    cls_df = pd.DataFrame(rows).drop_duplicates(subset=["id"], keep="last")
-    df = df.drop(columns=["category"]).merge(cls_df, on="id", how="left")
-    df = df.rename(columns={"cat": "category", "sub": "subcategory"})
+                cls_rows.append(json.loads(line))
+
+    cls_df = pd.DataFrame(cls_rows)
+    if cls_df.empty:
+        # No prior parquet, no progress, no classifications today. First
+        # run ever on a fresh repo - write the input with null cats so
+        # the workflow can still ship (09 will Miscellaneous-everything).
+        df["category"] = None
+        df["subcategory"] = None
+    else:
+        cls_df = cls_df.drop_duplicates(subset=["id"], keep="last")
+        df = df.drop(columns=["category"]).merge(cls_df, on="id", how="left")
+        df = df.rename(columns={"cat": "category", "sub": "subcategory"})
     df.to_parquet(OUTPUT, index=False)
 
     print(f"\nWrote {OUTPUT}", file=sys.stderr)

@@ -217,14 +217,22 @@ jobs:
           PAST_COUNT=$(python -c 'import json; print(len(json.load(open("web/data/markets.json"))))')
           DATE=$(date -u +%Y-%m-%d)
 
-          # Always add the active bundle + cache-bust SHAs. Past deck files
-          # are conditionally added: parquets and web bundle only when a
-          # promotion actually happened, otherwise git add would no-op them
-          # (they're unchanged) and that's fine, harmless.
+          # Always add the active bundle + cache-bust SHAs + classified
+          # parquet. The parquet is the persistent classification store
+          # that 08 reads on the next run to seed done_ids - committing
+          # it kills the cold-seed problem because every CI runner sees
+          # yesterday's full classifications without depending on GHA
+          # cache (which kept silently expiring and skipping save on
+          # cancellation throughout 2026-05/06). Past deck files are
+          # conditionally added: parquets and web bundle only when a
+          # promotion actually happened, otherwise git add would no-op
+          # them (they're unchanged).
           git add web/data/markets-active.json \
                   web/data/slugs-active.json \
                   web/data/taxonomy-active.json \
                   web/data/descriptions-active.json \
+                  web/data/markets-active-*.json \
+                  data/active_markets_classified.parquet \
                   web/app.js \
                   web/index.html
           if [ $PAST_CHANGED -eq 1 ]; then
