@@ -29,16 +29,13 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    # 360 min (6 hr - GHA per-job max) to give cold-seed bootstrap
-    # runs full headroom. Free-tier Groq 8b-instant hits 6k TPM and
-    # 500k TPD walls during the ~8k market reseed, which pushes
-    # effective throughput to ~30-50s per 80-question batch. 105
-    # batches at the slow end can land near 90 min; backoff stalls
-    # on TPD edge can push higher. After the bootstrap commits a
-    # fresh parquet, daily delta runs do under 100 markets and
-    # finish in 10-15 min - the high cap is unused on healthy days,
-    # GHA only bills actual runtime.
-    timeout-minutes: 360
+    # 120 min. 08 now self-caps at MAX_BATCHES_PER_RUN=60 (~30 min of
+    # classify) and stops cleanly when the daily TPD budget is gone, so
+    # a single run never needs hours. The extra headroom over ~40 min
+    # of expected work covers a large promote backlog plus retry stalls.
+    # Cold seed finishes over a few daily runs via the committed parquet
+    # seed instead of one marathon job.
+    timeout-minutes: 120
     # Opt into Node.js 24 for actions/* now to silence the Node20
     # deprecation warning (June 2026 forced cutover). All actions we use
     # support it.

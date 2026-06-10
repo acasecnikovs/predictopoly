@@ -47,7 +47,11 @@ OUTPUT = DATA / "active_markets_classified.parquet"
 
 BATCH_SIZE = 80
 SLEEP_BETWEEN = 0.5
-MAX_RETRIES = 8
+# 5 retries: rate-limit backoff sums to 30+60+90+120+150 = 7.5 min per
+# fully-exhausted batch. Combined with CONSEC_RATE_LIMIT_STOP=3 below,
+# the run gives up on a TPD-dead day after ~22 min of doomed retries
+# instead of burning hours.
+MAX_RETRIES = 5
 # Switched 70b -> 8b-instant on 2026-06-08 after the 70b free-tier TPD
 # of 100k blew up halfway through a cold reseed (~400k tokens needed
 # for full ~7k market pool with 5k-token batches). 8b-instant free has
@@ -61,6 +65,25 @@ GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 # enough room without blowing the per-request budget. Combined with
 # the compact prompt below, each request stays around 4k TPM.
 MAX_OUTPUT_TOKENS = 2500
+
+# Cold-seed defense. The free-tier 500k tokens-per-day cap can't cover
+# a full ~8k-market cold reseed in one run - each ~5k-token batch x ~100
+# batches plus retries blows past 500k, and once TPD is hit every batch
+# burns its full 8-retry backoff (~14 min) for nothing. So we cap how
+# much one run attempts and STOP CLEANLY (exit 0) rather than letting
+# the job time out. A clean exit means the merge+commit+deploy steps
+# still run, the partial parquet gets committed, and the next run seeds
+# from it - cold seed finishes incrementally over a few days, then daily
+# delta is trivial.
+#
+# Two stop conditions, whichever hits first:
+#   - MAX_BATCHES_PER_RUN: hard cap on batches attempted this run, sized
+#     to stay comfortably under 500k TPD (60 batches x ~5k = ~300k).
+#   - CONSEC_RATE_LIMIT_STOP: if this many batches in a row all fail on
+#     rate limits, TPD is exhausted for the day - stop instead of
+#     burning the remaining job time on doomed 14-min retry cycles.
+MAX_BATCHES_PER_RUN = 60
+CONSEC_RATE_LIMIT_STOP = 3
 
 # TAXONOMY, CANONICAL, compact_taxonomy, validate_classification all live in
 # scripts/_taxonomy.py. Single source of truth shared with 02, 04, 09.
@@ -99,6 +122,12 @@ def parse_response(text, expected_n):
     return data
 
 
+class RateLimitExhausted(Exception):
+    """All retries on a batch failed with rate-limit errors. Signals the
+    caller that the daily token budget is gone - retrying more batches is
+    pointless, stop cleanly so the partial result still commits."""
+
+
 def classify_batch(client, batch):
     last_err = None
     for attempt in range(MAX_RETRIES):
@@ -119,6 +148,8 @@ def classify_batch(client, batch):
             print(f"  parse error on attempt {attempt+1}: {e}", file=sys.stderr)
             time.sleep(2)
             last_err = e
+    if isinstance(last_err, RateLimitError):
+        raise RateLimitExhausted(str(last_err))
     raise RuntimeError(f"classify_batch failed after {MAX_RETRIES} retries: {last_err}")
 
 
@@ -184,8 +215,17 @@ def main():
     print(f"To classify: {len(remaining)}", file=sys.stderr)
 
     total_batches = (len(remaining) + BATCH_SIZE - 1) // BATCH_SIZE
+    run_cap = min(total_batches, MAX_BATCHES_PER_RUN)
+    if run_cap < total_batches:
+        print(
+            f"Capping this run at {run_cap}/{total_batches} batches "
+            f"(daily TPD budget). Remaining {total_batches - run_cap} "
+            f"batches finish on subsequent runs via parquet seed.",
+            file=sys.stderr,
+        )
+    consec_rate_limited = 0
     with PROGRESS.open("a") as f:
-        for b in range(total_batches):
+        for b in range(run_cap):
             start = b * BATCH_SIZE
             end = min(start + BATCH_SIZE, len(remaining))
             slice_df = remaining.iloc[start:end]
@@ -195,10 +235,26 @@ def main():
             t0 = time.time()
             try:
                 results = classify_batch(client, batch_questions)
+            except RateLimitExhausted:
+                consec_rate_limited += 1
+                print(
+                    f"Batch {b+1}/{run_cap} rate-limited "
+                    f"({consec_rate_limited}/{CONSEC_RATE_LIMIT_STOP} consecutive)",
+                    file=sys.stderr,
+                )
+                if consec_rate_limited >= CONSEC_RATE_LIMIT_STOP:
+                    print(
+                        "Daily token budget exhausted. Stopping cleanly so the "
+                        "partial result commits and the next run resumes from it.",
+                        file=sys.stderr,
+                    )
+                    break
+                continue
             except Exception as e:
-                print(f"Batch {b+1}/{total_batches} FAILED: {e}", file=sys.stderr)
+                print(f"Batch {b+1}/{run_cap} FAILED: {e}", file=sys.stderr)
                 continue
 
+            consec_rate_limited = 0
             for r, mid in zip(results, batch_ids):
                 cat, sub = validate_classification(r.get("cat", ""), r.get("sub", ""))
                 rec = {"id": str(mid), "cat": cat, "sub": sub}
@@ -207,11 +263,11 @@ def main():
 
             elapsed = time.time() - t0
             print(
-                f"Batch {b+1}/{total_batches} ({len(batch_questions)} q, {elapsed:.1f}s) | "
+                f"Batch {b+1}/{run_cap} ({len(batch_questions)} q, {elapsed:.1f}s) | "
                 f"progress {end + len(done_ids)}/{len(df)}",
                 file=sys.stderr,
             )
-            if b < total_batches - 1:
+            if b < run_cap - 1:
                 time.sleep(max(0, SLEEP_BETWEEN - elapsed))
 
     print("\nMerging classifications into parquet...", file=sys.stderr)
