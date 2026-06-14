@@ -20,11 +20,11 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 7803
+      "n": 7834
     },
     {
       "sub": "Other Sports",
-      "n": 4125
+      "n": 4139
     },
     {
       "sub": "NBA",
@@ -56,7 +56,7 @@
     },
     {
       "sub": "F1 & Motorsport",
-      "n": 418
+      "n": 420
     },
     {
       "sub": "Olympics & Multi-sport",
@@ -70,13 +70,13 @@
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 1497
+      "n": 1501
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4383
+      "n": 4389
     }
   ],
   "Crypto": [
