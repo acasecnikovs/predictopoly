@@ -20,11 +20,11 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 7860
+      "n": 7898
     },
     {
       "sub": "Other Sports",
-      "n": 4139
+      "n": 4153
     },
     {
       "sub": "NBA",
@@ -56,7 +56,7 @@
     },
     {
       "sub": "F1 & Motorsport",
-      "n": 440
+      "n": 449
     },
     {
       "sub": "Olympics & Multi-sport",
@@ -66,17 +66,17 @@
   "World Politics": [
     {
       "sub": "International Relations & Conflicts",
-      "n": 1504
+      "n": 1509
     },
     {
       "sub": "Non-US Elections",
-      "n": 1503
+      "n": 1508
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4399
+      "n": 4402
     }
   ],
   "Crypto": [
@@ -90,7 +90,7 @@
     },
     {
       "sub": "Price Predictions",
-      "n": 358
+      "n": 359
     },
     {
       "sub": "Crypto Regulation",
@@ -108,7 +108,7 @@
     },
     {
       "sub": "Monetary Policy",
-      "n": 208
+      "n": 215
     }
   ],
   "Culture & Media": [
