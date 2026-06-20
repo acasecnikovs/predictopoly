@@ -20,11 +20,11 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 7988
+      "n": 7995
     },
     {
       "sub": "Other Sports",
-      "n": 4193
+      "n": 4194
     },
     {
       "sub": "NBA",
@@ -65,18 +65,18 @@
   ],
   "World Politics": [
     {
-      "sub": "International Relations & Conflicts",
-      "n": 1529
+      "sub": "Non-US Elections",
+      "n": 1531
     },
     {
-      "sub": "Non-US Elections",
-      "n": 1517
+      "sub": "International Relations & Conflicts",
+      "n": 1529
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4415
+      "n": 4429
     }
   ],
   "Crypto": [
@@ -114,7 +114,7 @@
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 4459
+      "n": 4475
     },
     {
       "sub": "Movies, TV & Awards",
@@ -136,7 +136,7 @@
     },
     {
       "sub": "Tech Companies",
-      "n": 217
+      "n": 218
     }
   ],
   "Science": [
