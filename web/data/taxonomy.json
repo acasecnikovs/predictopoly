@@ -20,11 +20,11 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 8004
+      "n": 8006
     },
     {
       "sub": "Other Sports",
-      "n": 4201
+      "n": 4202
     },
     {
       "sub": "NBA",
@@ -56,7 +56,7 @@
     },
     {
       "sub": "F1 & Motorsport",
-      "n": 492
+      "n": 493
     },
     {
       "sub": "Olympics & Multi-sport",
@@ -66,7 +66,7 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 1534
+      "n": 1537
     },
     {
       "sub": "International Relations & Conflicts",
