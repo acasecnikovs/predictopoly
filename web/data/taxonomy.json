@@ -20,11 +20,11 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 8010
+      "n": 8014
     },
     {
       "sub": "Other Sports",
-      "n": 4210
+      "n": 4212
     },
     {
       "sub": "NBA",
@@ -60,13 +60,13 @@
     },
     {
       "sub": "Olympics & Multi-sport",
-      "n": 276
+      "n": 282
     }
   ],
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 1553
+      "n": 1554
     },
     {
       "sub": "International Relations & Conflicts",
@@ -76,7 +76,7 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4492
+      "n": 4494
     }
   ],
   "Crypto": [
@@ -136,7 +136,7 @@
     },
     {
       "sub": "Tech Companies",
-      "n": 218
+      "n": 219
     }
   ],
   "Science": [
