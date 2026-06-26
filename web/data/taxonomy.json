@@ -20,11 +20,11 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 8014
+      "n": 8023
     },
     {
       "sub": "Other Sports",
-      "n": 4212
+      "n": 4218
     },
     {
       "sub": "NBA",
@@ -56,21 +56,21 @@
     },
     {
       "sub": "F1 & Motorsport",
-      "n": 501
+      "n": 502
     },
     {
       "sub": "Olympics & Multi-sport",
-      "n": 282
+      "n": 286
     }
   ],
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 1554
+      "n": 1560
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 1533
+      "n": 1534
     }
   ],
   "Miscellaneous": [
@@ -122,7 +122,7 @@
     },
     {
       "sub": "Celebrity & Events",
-      "n": 549
+      "n": 550
     },
     {
       "sub": "Social Media",
@@ -132,7 +132,7 @@
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 296
+      "n": 297
     },
     {
       "sub": "Tech Companies",
