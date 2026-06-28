@@ -1,47 +1,47 @@
 {
-  "Sports": {
-    "slug": "sports",
-    "n": 1450,
-    "bytes": 268078
-  },
   "Miscellaneous": {
     "slug": "miscellaneous",
-    "n": 1076,
-    "bytes": 209087
+    "n": 1356,
+    "bytes": 265083
+  },
+  "Sports": {
+    "slug": "sports",
+    "n": 1397,
+    "bytes": 258113
   },
   "World Politics": {
     "slug": "world-politics",
-    "n": 521,
-    "bytes": 106492
+    "n": 461,
+    "bytes": 94510
   },
   "Crypto": {
     "slug": "crypto",
-    "n": 629,
-    "bytes": 110185
+    "n": 562,
+    "bytes": 97840
   },
   "Science": {
     "slug": "science",
-    "n": 412,
-    "bytes": 82928
+    "n": 646,
+    "bytes": 129882
   },
   "US Politics": {
     "slug": "us-politics",
-    "n": 137,
-    "bytes": 26447
+    "n": 173,
+    "bytes": 34483
   },
   "Economy & Finance": {
     "slug": "economy-and-finance",
-    "n": 475,
-    "bytes": 95407
-  },
-  "Culture & Media": {
-    "slug": "culture-and-media",
-    "n": 474,
-    "bytes": 93843
+    "n": 406,
+    "bytes": 82257
   },
   "AI & Tech": {
     "slug": "ai-and-tech",
-    "n": 363,
-    "bytes": 71120
+    "n": 355,
+    "bytes": 70198
+  },
+  "Culture & Media": {
+    "slug": "culture-and-media",
+    "n": 440,
+    "bytes": 86636
   }
 }
