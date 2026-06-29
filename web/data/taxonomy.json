@@ -24,7 +24,7 @@
     },
     {
       "sub": "Other Sports",
-      "n": 4244
+      "n": 4245
     },
     {
       "sub": "NBA",
@@ -48,7 +48,7 @@
     },
     {
       "sub": "eSports",
-      "n": 649
+      "n": 652
     },
     {
       "sub": "Combat Sports",
@@ -76,7 +76,7 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4515
+      "n": 4517
     }
   ],
   "Crypto": [
@@ -132,7 +132,7 @@
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 297
+      "n": 298
     },
     {
       "sub": "Tech Companies",
