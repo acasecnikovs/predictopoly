@@ -20,11 +20,11 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 8041
+      "n": 8043
     },
     {
       "sub": "Other Sports",
-      "n": 4252
+      "n": 4253
     },
     {
       "sub": "NBA",
@@ -48,11 +48,11 @@
     },
     {
       "sub": "eSports",
-      "n": 654
+      "n": 655
     },
     {
       "sub": "Combat Sports",
-      "n": 609
+      "n": 625
     },
     {
       "sub": "F1 & Motorsport",
@@ -76,7 +76,7 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4546
+      "n": 4550
     }
   ],
   "Crypto": [
