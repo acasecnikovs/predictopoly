@@ -6,7 +6,7 @@
     },
     {
       "sub": "Presidential Elections",
-      "n": 1234
+      "n": 1237
     },
     {
       "sub": "Nominations & Primaries",
@@ -20,15 +20,15 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 8043
+      "n": 8086
     },
     {
       "sub": "Other Sports",
-      "n": 4257
+      "n": 4259
     },
     {
       "sub": "NBA",
-      "n": 3579
+      "n": 3583
     },
     {
       "sub": "Tennis",
@@ -56,27 +56,27 @@
     },
     {
       "sub": "F1 & Motorsport",
-      "n": 511
+      "n": 523
     },
     {
       "sub": "Olympics & Multi-sport",
-      "n": 287
+      "n": 292
     }
   ],
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 1602
+      "n": 1603
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 1549
+      "n": 1551
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4556
+      "n": 4562
     }
   ],
   "Crypto": [
@@ -122,7 +122,7 @@
     },
     {
       "sub": "Celebrity & Events",
-      "n": 552
+      "n": 553
     },
     {
       "sub": "Social Media",
