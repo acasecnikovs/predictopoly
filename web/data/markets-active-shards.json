@@ -1,47 +1,47 @@
 {
   "Economy & Finance": {
     "slug": "economy-and-finance",
-    "n": 481,
-    "bytes": 95857
+    "n": 391,
+    "bytes": 78448
   },
   "World Politics": {
     "slug": "world-politics",
-    "n": 434,
-    "bytes": 94399
+    "n": 372,
+    "bytes": 80778
   },
   "Miscellaneous": {
     "slug": "miscellaneous",
-    "n": 1087,
-    "bytes": 211435
+    "n": 1448,
+    "bytes": 283586
   },
   "Crypto": {
     "slug": "crypto",
-    "n": 322,
-    "bytes": 55112
+    "n": 289,
+    "bytes": 49196
   },
   "US Politics": {
     "slug": "us-politics",
     "n": 98,
-    "bytes": 19970
-  },
-  "AI & Tech": {
-    "slug": "ai-and-tech",
-    "n": 287,
-    "bytes": 57468
-  },
-  "Culture & Media": {
-    "slug": "culture-and-media",
-    "n": 337,
-    "bytes": 67989
+    "bytes": 20348
   },
   "Sports": {
     "slug": "sports",
-    "n": 1276,
-    "bytes": 231655
+    "n": 853,
+    "bytes": 153487
+  },
+  "AI & Tech": {
+    "slug": "ai-and-tech",
+    "n": 271,
+    "bytes": 54161
+  },
+  "Culture & Media": {
+    "slug": "culture-and-media",
+    "n": 264,
+    "bytes": 54559
   },
   "Science": {
     "slug": "science",
-    "n": 392,
-    "bytes": 78910
+    "n": 347,
+    "bytes": 70105
   }
 }
