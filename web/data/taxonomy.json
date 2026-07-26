@@ -24,7 +24,7 @@
     },
     {
       "sub": "Other Sports",
-      "n": 4269
+      "n": 4271
     },
     {
       "sub": "NBA",
@@ -56,7 +56,7 @@
     },
     {
       "sub": "F1 & Motorsport",
-      "n": 527
+      "n": 528
     },
     {
       "sub": "Olympics & Multi-sport",
@@ -132,11 +132,11 @@
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 308
+      "n": 310
     },
     {
       "sub": "Tech Companies",
-      "n": 233
+      "n": 234
     }
   ],
   "Science": [
