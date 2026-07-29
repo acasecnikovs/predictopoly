@@ -24,11 +24,11 @@
     },
     {
       "sub": "Other Sports",
-      "n": 4272
+      "n": 4273
     },
     {
       "sub": "NBA",
-      "n": 3583
+      "n": 3584
     },
     {
       "sub": "Tennis",
@@ -48,7 +48,7 @@
     },
     {
       "sub": "eSports",
-      "n": 671
+      "n": 672
     },
     {
       "sub": "Combat Sports",
@@ -76,7 +76,7 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4573
+      "n": 4575
     }
   ],
   "Crypto": [
@@ -104,7 +104,7 @@
     },
     {
       "sub": "Financial Markets",
-      "n": 491
+      "n": 493
     },
     {
       "sub": "Monetary Policy",
@@ -114,7 +114,7 @@
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 4569
+      "n": 4580
     },
     {
       "sub": "Movies, TV & Awards",
