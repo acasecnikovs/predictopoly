@@ -20,7 +20,7 @@
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 8090
+      "n": 8091
     },
     {
       "sub": "Other Sports",
@@ -48,7 +48,7 @@
     },
     {
       "sub": "eSports",
-      "n": 672
+      "n": 674
     },
     {
       "sub": "Combat Sports",
@@ -76,7 +76,7 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4575
+      "n": 4577
     }
   ],
   "Crypto": [
@@ -104,7 +104,7 @@
     },
     {
       "sub": "Financial Markets",
-      "n": 493
+      "n": 495
     },
     {
       "sub": "Monetary Policy",
@@ -132,7 +132,7 @@
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 310
+      "n": 312
     },
     {
       "sub": "Tech Companies",
