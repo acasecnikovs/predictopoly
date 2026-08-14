@@ -6,7 +6,7 @@
     },
     {
       "sub": "Presidential Elections",
-      "n": 1241
+      "n": 1242
     },
     {
       "sub": "Nominations & Primaries",
@@ -24,7 +24,7 @@
     },
     {
       "sub": "Other Sports",
-      "n": 4287
+      "n": 4288
     },
     {
       "sub": "NBA",
@@ -44,11 +44,11 @@
     },
     {
       "sub": "MLB",
-      "n": 1201
+      "n": 1202
     },
     {
       "sub": "eSports",
-      "n": 691
+      "n": 692
     },
     {
       "sub": "Combat Sports",
@@ -66,7 +66,7 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 1606
+      "n": 1607
     },
     {
       "sub": "International Relations & Conflicts",
@@ -76,7 +76,7 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4607
+      "n": 4609
     }
   ],
   "Crypto": [
