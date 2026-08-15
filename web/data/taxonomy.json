@@ -24,7 +24,7 @@
     },
     {
       "sub": "Other Sports",
-      "n": 4288
+      "n": 4289
     },
     {
       "sub": "NBA",
@@ -66,7 +66,7 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 1607
+      "n": 1608
     },
     {
       "sub": "International Relations & Conflicts",
@@ -76,7 +76,7 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4609
+      "n": 4611
     }
   ],
   "Crypto": [
@@ -132,7 +132,7 @@
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 316
+      "n": 317
     },
     {
       "sub": "Tech Companies",
