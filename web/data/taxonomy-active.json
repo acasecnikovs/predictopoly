@@ -2,7 +2,7 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 335
+      "n": 332
     },
     {
       "sub": "International Relations & Conflicts",
@@ -12,69 +12,69 @@
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 150
+      "n": 143
     },
     {
       "sub": "Monetary Policy",
-      "n": 68
+      "n": 48
     },
     {
       "sub": "Financial Markets",
-      "n": 48
+      "n": 39
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 1767
+      "n": 1582
     }
   ],
   "Sports": [
     {
-      "sub": "Other Sports",
-      "n": 89
-    },
-    {
       "sub": "MLB",
-      "n": 79
+      "n": 106
     },
     {
-      "sub": "NBA",
-      "n": 77
+      "sub": "Other Sports",
+      "n": 80
     },
     {
       "sub": "Global Soccer",
-      "n": 60
+      "n": 57
     },
     {
-      "sub": "Tennis",
-      "n": 30
+      "sub": "NBA",
+      "n": 34
     },
     {
       "sub": "NFL",
+      "n": 33
+    },
+    {
+      "sub": "Tennis",
       "n": 28
     },
     {
       "sub": "F1 & Motorsport",
-      "n": 23
+      "n": 25
     },
     {
       "sub": "eSports",
-      "n": 17
+      "n": 19
     },
     {
       "sub": "Combat Sports",
-      "n": 5
+      "n": 7
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 122
+      "n": 101
     },
     {
       "sub": "Policy & Governance",
-      "n": 95
+      "n": 80
     },
     {
       "sub": "Nominations & Primaries",
@@ -84,11 +84,11 @@
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 385
+      "n": 297
     },
     {
       "sub": "Price Predictions",
-      "n": 39
+      "n": 40
     },
     {
       "sub": "Protocol & Launches",
@@ -98,35 +98,31 @@
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 332
+      "n": 345
     },
     {
       "sub": "Tech Companies",
-      "n": 132
+      "n": 109
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 170
+      "n": 224
     },
     {
       "sub": "Movies, TV & Awards",
-      "n": 52
+      "n": 40
     },
     {
       "sub": "Celebrity & Events",
-      "n": 17
-    },
-    {
-      "sub": "Social Media",
-      "n": 2
+      "n": 7
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
-      "n": 14
+      "n": 11
     },
     {
       "sub": "Space",
