@@ -2,65 +2,65 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 345
+      "n": 316
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 136
+      "n": 82
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 91
+      "n": 120
     },
     {
       "sub": "Monetary Policy",
-      "n": 58
+      "n": 51
     },
     {
       "sub": "Financial Markets",
-      "n": 14
+      "n": 6
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 1896
+      "n": 3276
     }
   ],
   "Sports": [
     {
       "sub": "MLB",
-      "n": 167
+      "n": 132
     },
     {
       "sub": "Other Sports",
-      "n": 70
+      "n": 90
     },
     {
       "sub": "Global Soccer",
-      "n": 56
-    },
-    {
-      "sub": "NFL",
-      "n": 35
+      "n": 65
     },
     {
       "sub": "eSports",
-      "n": 34
+      "n": 41
     },
     {
       "sub": "Tennis",
-      "n": 27
+      "n": 24
     },
     {
       "sub": "NBA",
-      "n": 22
+      "n": 11
+    },
+    {
+      "sub": "NFL",
+      "n": 11
     },
     {
       "sub": "Combat Sports",
-      "n": 6
+      "n": 2
     },
     {
       "sub": "F1 & Motorsport",
@@ -69,32 +69,22 @@
   ],
   "US Politics": [
     {
-      "sub": "Presidential Elections",
-      "n": 90
+      "sub": "Policy & Governance",
+      "n": 107
     },
     {
-      "sub": "Policy & Governance",
-      "n": 76
+      "sub": "Presidential Elections",
+      "n": 104
     },
     {
       "sub": "Nominations & Primaries",
-      "n": 4
-    }
-  ],
-  "AI & Tech": [
-    {
-      "sub": "Model Releases & Benchmarks",
-      "n": 350
-    },
-    {
-      "sub": "Tech Companies",
-      "n": 130
+      "n": 3
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 121
+      "n": 226
     },
     {
       "sub": "Price Predictions",
@@ -105,32 +95,38 @@
       "n": 12
     }
   ],
+  "AI & Tech": [
+    {
+      "sub": "Model Releases & Benchmarks",
+      "n": 298
+    },
+    {
+      "sub": "Tech Companies",
+      "n": 67
+    }
+  ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 167
+      "n": 137
     },
     {
       "sub": "Movies, TV & Awards",
-      "n": 45
+      "n": 41
     },
     {
       "sub": "Celebrity & Events",
-      "n": 23
+      "n": 13
     },
     {
       "sub": "Social Media",
-      "n": 3
+      "n": 1
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
-      "n": 19
-    },
-    {
-      "sub": "Health & Science",
-      "n": 2
+      "n": 11
     },
     {
       "sub": "Space",
