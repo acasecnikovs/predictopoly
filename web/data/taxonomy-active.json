@@ -2,7 +2,7 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 316
+      "n": 310
     },
     {
       "sub": "International Relations & Conflicts",
@@ -12,55 +12,55 @@
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 120
+      "n": 116
     },
     {
       "sub": "Monetary Policy",
-      "n": 51
+      "n": 61
     },
     {
       "sub": "Financial Markets",
-      "n": 6
+      "n": 5
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 3276
+      "n": 2890
     }
   ],
   "Sports": [
     {
       "sub": "MLB",
-      "n": 132
+      "n": 103
     },
     {
       "sub": "Other Sports",
-      "n": 90
+      "n": 69
     },
     {
-      "sub": "Global Soccer",
-      "n": 65
+      "sub": "NBA",
+      "n": 48
     },
     {
       "sub": "eSports",
-      "n": 41
+      "n": 34
     },
     {
       "sub": "Tennis",
       "n": 24
     },
     {
-      "sub": "NBA",
-      "n": 11
+      "sub": "Global Soccer",
+      "n": 19
     },
     {
       "sub": "NFL",
-      "n": 11
+      "n": 8
     },
     {
       "sub": "Combat Sports",
-      "n": 2
+      "n": 3
     },
     {
       "sub": "F1 & Motorsport",
@@ -69,64 +69,64 @@
   ],
   "US Politics": [
     {
-      "sub": "Policy & Governance",
+      "sub": "Presidential Elections",
       "n": 107
     },
     {
-      "sub": "Presidential Elections",
-      "n": 104
+      "sub": "Policy & Governance",
+      "n": 86
     },
     {
       "sub": "Nominations & Primaries",
-      "n": 3
+      "n": 4
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 226
+      "n": 177
     },
     {
       "sub": "Price Predictions",
-      "n": 28
+      "n": 40
     },
     {
       "sub": "Protocol & Launches",
-      "n": 12
+      "n": 19
+    },
+    {
+      "sub": "Crypto Regulation",
+      "n": 1
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 298
+      "n": 271
     },
     {
       "sub": "Tech Companies",
-      "n": 67
+      "n": 43
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 137
+      "n": 128
     },
     {
       "sub": "Movies, TV & Awards",
-      "n": 41
+      "n": 50
     },
     {
       "sub": "Celebrity & Events",
       "n": 13
-    },
-    {
-      "sub": "Social Media",
-      "n": 1
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
-      "n": 11
+      "n": 7
     },
     {
       "sub": "Space",
