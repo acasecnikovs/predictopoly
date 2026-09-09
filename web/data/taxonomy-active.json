@@ -2,115 +2,119 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 228
+      "n": 277
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 71
+      "n": 69
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 3085
+      "n": 3112
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 105
+      "n": 112
     },
     {
       "sub": "Monetary Policy",
-      "n": 56
+      "n": 55
     },
     {
       "sub": "Financial Markets",
-      "n": 7
+      "n": 4
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 119
+      "n": 162
     },
     {
       "sub": "Policy & Governance",
-      "n": 82
+      "n": 105
     }
   ],
   "Sports": [
     {
       "sub": "MLB",
-      "n": 75
+      "n": 117
     },
     {
       "sub": "Other Sports",
-      "n": 36
+      "n": 54
+    },
+    {
+      "sub": "Global Soccer",
+      "n": 33
     },
     {
       "sub": "NBA",
       "n": 26
     },
     {
-      "sub": "Global Soccer",
-      "n": 22
+      "sub": "eSports",
+      "n": 15
     },
     {
       "sub": "NFL",
-      "n": 19
+      "n": 9
     },
     {
       "sub": "Tennis",
-      "n": 9
-    },
-    {
-      "sub": "eSports",
-      "n": 9
+      "n": 8
     },
     {
       "sub": "Combat Sports",
-      "n": 3
+      "n": 2
+    },
+    {
+      "sub": "F1 & Motorsport",
+      "n": 2
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 183
+      "n": 171
     },
     {
       "sub": "Price Predictions",
-      "n": 42
+      "n": 39
     },
     {
       "sub": "Protocol & Launches",
-      "n": 19
+      "n": 11
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 191
+      "n": 198
     },
     {
       "sub": "Tech Companies",
-      "n": 39
+      "n": 51
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 153
+      "n": 162
     },
     {
       "sub": "Celebrity & Events",
-      "n": 6
+      "n": 7
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
-      "n": 11
+      "n": 6
     },
     {
       "sub": "Space",
