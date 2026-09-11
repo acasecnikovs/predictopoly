@@ -2,27 +2,27 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 290
+      "n": 281
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 67
+      "n": 81
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 3460
+      "n": 3662
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 121
+      "n": 76
     },
     {
       "sub": "Monetary Policy",
-      "n": 64
+      "n": 57
     },
     {
       "sub": "Financial Markets",
@@ -32,83 +32,79 @@
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 165
+      "n": 175
     },
     {
       "sub": "Policy & Governance",
-      "n": 95
+      "n": 100
     }
   ],
   "Sports": [
     {
       "sub": "MLB",
-      "n": 129
+      "n": 91
     },
     {
       "sub": "Other Sports",
-      "n": 51
+      "n": 41
     },
     {
       "sub": "eSports",
-      "n": 32
+      "n": 20
     },
     {
       "sub": "Global Soccer",
-      "n": 21
+      "n": 18
     },
     {
       "sub": "NBA",
-      "n": 17
+      "n": 10
     },
     {
       "sub": "NFL",
-      "n": 12
+      "n": 8
     },
     {
       "sub": "Tennis",
-      "n": 6
+      "n": 5
     },
     {
       "sub": "Combat Sports",
-      "n": 3
+      "n": 2
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 130
+      "n": 121
     },
     {
       "sub": "Price Predictions",
-      "n": 46
+      "n": 39
     },
     {
       "sub": "Protocol & Launches",
-      "n": 14
+      "n": 13
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 229
+      "n": 262
     },
     {
       "sub": "Tech Companies",
-      "n": 43
+      "n": 53
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 122
+      "n": 53
     },
     {
       "sub": "Celebrity & Events",
-      "n": 9
-    },
-    {
-      "sub": "Social Media",
-      "n": 1
+      "n": 14
     }
   ],
   "Science": [
@@ -118,6 +114,10 @@
     },
     {
       "sub": "Space",
+      "n": 1
+    },
+    {
+      "sub": "Health & Science",
       "n": 1
     }
   ]
