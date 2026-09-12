@@ -2,81 +2,81 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 281
+      "n": 241
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 81
-    }
-  ],
-  "Miscellaneous": [
-    {
-      "sub": "Unclassified",
-      "n": 3662
+      "n": 68
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 76
+      "n": 58
     },
     {
       "sub": "Monetary Policy",
-      "n": 57
+      "n": 53
     },
     {
       "sub": "Financial Markets",
-      "n": 9
+      "n": 7
+    }
+  ],
+  "Miscellaneous": [
+    {
+      "sub": "Unclassified",
+      "n": 2333
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 175
+      "n": 156
     },
     {
       "sub": "Policy & Governance",
-      "n": 100
+      "n": 79
     }
   ],
   "Sports": [
     {
       "sub": "MLB",
-      "n": 91
+      "n": 109
     },
     {
       "sub": "Other Sports",
-      "n": 41
+      "n": 38
     },
     {
       "sub": "eSports",
-      "n": 20
+      "n": 16
     },
     {
       "sub": "Global Soccer",
-      "n": 18
+      "n": 15
     },
     {
       "sub": "NBA",
-      "n": 10
+      "n": 7
     },
     {
       "sub": "NFL",
-      "n": 8
-    },
-    {
-      "sub": "Tennis",
       "n": 5
     },
     {
+      "sub": "Tennis",
+      "n": 4
+    },
+    {
       "sub": "Combat Sports",
-      "n": 2
+      "n": 1
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 121
+      "n": 169
     },
     {
       "sub": "Price Predictions",
@@ -84,27 +84,27 @@
     },
     {
       "sub": "Protocol & Launches",
-      "n": 13
+      "n": 17
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 262
+      "n": 185
     },
     {
       "sub": "Tech Companies",
-      "n": 53
+      "n": 37
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 53
+      "n": 160
     },
     {
       "sub": "Celebrity & Events",
-      "n": 14
+      "n": 7
     }
   ],
   "Science": [
@@ -114,10 +114,6 @@
     },
     {
       "sub": "Space",
-      "n": 1
-    },
-    {
-      "sub": "Health & Science",
       "n": 1
     }
   ]
