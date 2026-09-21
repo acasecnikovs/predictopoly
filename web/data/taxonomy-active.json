@@ -2,45 +2,45 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 119
+      "n": 116
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 80
+      "n": 66
     }
   ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 3239
+      "n": 4061
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 144
+      "n": 135
     },
     {
       "sub": "Policy & Governance",
-      "n": 110
+      "n": 85
     }
   ],
   "Sports": [
     {
       "sub": "MLB",
-      "n": 140
+      "n": 116
     },
     {
       "sub": "Other Sports",
-      "n": 42
+      "n": 46
     },
     {
       "sub": "Global Soccer",
-      "n": 17
+      "n": 20
     },
     {
       "sub": "NBA",
-      "n": 13
+      "n": 12
     },
     {
       "sub": "eSports",
@@ -49,58 +49,58 @@
     {
       "sub": "Combat Sports",
       "n": 2
+    },
+    {
+      "sub": "F1 & Motorsport",
+      "n": 1
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 189
+      "n": 379
     },
     {
       "sub": "Price Predictions",
-      "n": 45
+      "n": 32
     },
     {
       "sub": "Protocol & Launches",
-      "n": 17
-    },
-    {
-      "sub": "Crypto Regulation",
-      "n": 1
+      "n": 14
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 84
+      "n": 76
     },
     {
       "sub": "Monetary Policy",
-      "n": 36
+      "n": 33
     },
     {
       "sub": "Financial Markets",
-      "n": 6
+      "n": 4
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 209
+      "n": 180
     },
     {
       "sub": "Tech Companies",
-      "n": 33
+      "n": 35
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 152
+      "n": 88
     },
     {
       "sub": "Celebrity & Events",
-      "n": 2
+      "n": 4
     },
     {
       "sub": "Social Media",
@@ -111,6 +111,10 @@
     {
       "sub": "Weather & Disasters",
       "n": 9
+    },
+    {
+      "sub": "Health & Science",
+      "n": 1
     }
   ]
 }
