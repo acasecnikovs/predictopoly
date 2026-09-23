@@ -1,52 +1,52 @@
 {
-  "World Politics": [
-    {
-      "sub": "Non-US Elections",
-      "n": 55
-    },
-    {
-      "sub": "International Relations & Conflicts",
-      "n": 54
-    }
-  ],
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 3506
+      "n": 3705
     }
   ],
-  "Crypto": [
+  "World Politics": [
     {
-      "sub": "Speculation",
-      "n": 163
+      "sub": "Non-US Elections",
+      "n": 60
     },
     {
-      "sub": "Price Predictions",
-      "n": 35
-    },
-    {
-      "sub": "Protocol & Launches",
-      "n": 9
+      "sub": "International Relations & Conflicts",
+      "n": 48
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 116
+      "n": 171
     },
     {
       "sub": "Policy & Governance",
-      "n": 70
+      "n": 87
+    }
+  ],
+  "Crypto": [
+    {
+      "sub": "Speculation",
+      "n": 112
+    },
+    {
+      "sub": "Price Predictions",
+      "n": 25
+    },
+    {
+      "sub": "Protocol & Launches",
+      "n": 13
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 86
+      "n": 81
     },
     {
       "sub": "Monetary Policy",
-      "n": 40
+      "n": 41
     },
     {
       "sub": "Financial Markets",
@@ -56,61 +56,53 @@
   "Sports": [
     {
       "sub": "MLB",
-      "n": 98
+      "n": 102
     },
     {
       "sub": "Other Sports",
-      "n": 43
+      "n": 38
     },
     {
       "sub": "NBA",
-      "n": 20
+      "n": 19
     },
     {
       "sub": "eSports",
-      "n": 17
+      "n": 11
     },
     {
       "sub": "Global Soccer",
-      "n": 9
+      "n": 3
     },
     {
       "sub": "Combat Sports",
-      "n": 1
-    },
-    {
-      "sub": "F1 & Motorsport",
-      "n": 1
+      "n": 2
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 139
+      "n": 113
     },
     {
       "sub": "Tech Companies",
-      "n": 23
+      "n": 30
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 137
+      "n": 96
     },
     {
       "sub": "Celebrity & Events",
       "n": 2
-    },
-    {
-      "sub": "Social Media",
-      "n": 1
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
-      "n": 10
+      "n": 9
     }
   ]
 }
