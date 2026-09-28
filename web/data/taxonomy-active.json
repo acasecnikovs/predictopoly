@@ -2,97 +2,97 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 2972
+      "n": 2912
     }
   ],
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 63
+      "n": 70
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 40
+      "n": 50
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 120
+      "n": 146
     },
     {
       "sub": "Price Predictions",
-      "n": 41
+      "n": 31
     },
     {
       "sub": "Protocol & Launches",
-      "n": 9
-    }
-  ],
-  "US Politics": [
-    {
-      "sub": "Presidential Elections",
-      "n": 161
-    },
-    {
-      "sub": "Policy & Governance",
-      "n": 82
+      "n": 14
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 74
+      "n": 62
     },
     {
       "sub": "Monetary Policy",
-      "n": 30
+      "n": 35
     },
     {
       "sub": "Financial Markets",
-      "n": 8
+      "n": 5
+    }
+  ],
+  "US Politics": [
+    {
+      "sub": "Presidential Elections",
+      "n": 123
+    },
+    {
+      "sub": "Policy & Governance",
+      "n": 74
     }
   ],
   "Sports": [
     {
-      "sub": "MLB",
-      "n": 84
-    },
-    {
       "sub": "Other Sports",
-      "n": 26
+      "n": 17
     },
     {
-      "sub": "Global Soccer",
-      "n": 11
+      "sub": "MLB",
+      "n": 15
     },
     {
       "sub": "NBA",
-      "n": 9
+      "n": 14
     },
     {
-      "sub": "F1 & Motorsport",
-      "n": 2
+      "sub": "Global Soccer",
+      "n": 3
     },
     {
       "sub": "Combat Sports",
+      "n": 1
+    },
+    {
+      "sub": "F1 & Motorsport",
       "n": 1
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 173
+      "n": 152
     },
     {
       "sub": "Tech Companies",
-      "n": 41
+      "n": 43
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 84
+      "n": 21
     },
     {
       "sub": "Celebrity & Events",
@@ -102,7 +102,7 @@
   "Science": [
     {
       "sub": "Weather & Disasters",
-      "n": 4
+      "n": 10
     }
   ]
 }
