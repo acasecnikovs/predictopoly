@@ -2,59 +2,35 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 3684
-    }
-  ],
-  "World Politics": [
-    {
-      "sub": "Non-US Elections",
-      "n": 132
-    },
-    {
-      "sub": "International Relations & Conflicts",
-      "n": 16
+      "n": 4387
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 152
+      "n": 158
     },
     {
       "sub": "Policy & Governance",
-      "n": 106
-    }
-  ],
-  "Economy & Finance": [
-    {
-      "sub": "Macroeconomics",
-      "n": 33
-    },
-    {
-      "sub": "Monetary Policy",
-      "n": 24
-    },
-    {
-      "sub": "Financial Markets",
-      "n": 4
+      "n": 120
     }
   ],
   "Sports": [
     {
-      "sub": "Other Sports",
-      "n": 13
-    },
-    {
-      "sub": "NBA",
-      "n": 6
-    },
-    {
       "sub": "Global Soccer",
-      "n": 5
+      "n": 15
     },
     {
       "sub": "MLB",
-      "n": 5
+      "n": 9
+    },
+    {
+      "sub": "NBA",
+      "n": 9
+    },
+    {
+      "sub": "Other Sports",
+      "n": 8
     },
     {
       "sub": "F1 & Motorsport",
@@ -65,14 +41,38 @@
       "n": 1
     }
   ],
+  "Economy & Finance": [
+    {
+      "sub": "Macroeconomics",
+      "n": 24
+    },
+    {
+      "sub": "Monetary Policy",
+      "n": 18
+    },
+    {
+      "sub": "Financial Markets",
+      "n": 10
+    }
+  ],
+  "World Politics": [
+    {
+      "sub": "Non-US Elections",
+      "n": 47
+    },
+    {
+      "sub": "International Relations & Conflicts",
+      "n": 15
+    }
+  ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 162
+      "n": 121
     },
     {
       "sub": "Price Predictions",
-      "n": 15
+      "n": 31
     },
     {
       "sub": "Protocol & Launches",
@@ -82,21 +82,17 @@
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 166
+      "n": 73
     },
     {
       "sub": "Tech Companies",
-      "n": 24
+      "n": 9
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 86
-    },
-    {
-      "sub": "Celebrity & Events",
-      "n": 2
+      "n": 96
     }
   ],
   "Science": [
