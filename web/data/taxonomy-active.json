@@ -2,40 +2,40 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4322
+      "n": 4419
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 183
+      "n": 157
     },
     {
       "sub": "Policy & Governance",
-      "n": 148
+      "n": 133
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 31
+      "n": 35
     },
     {
       "sub": "Monetary Policy",
-      "n": 24
+      "n": 23
     },
     {
       "sub": "Financial Markets",
-      "n": 7
+      "n": 6
     }
   ],
   "Sports": [
     {
-      "sub": "Other Sports",
+      "sub": "Global Soccer",
       "n": 20
     },
     {
-      "sub": "Global Soccer",
+      "sub": "Other Sports",
       "n": 19
     },
     {
@@ -44,11 +44,11 @@
     },
     {
       "sub": "NBA",
-      "n": 3
+      "n": 7
     },
     {
       "sub": "F1 & Motorsport",
-      "n": 1
+      "n": 2
     },
     {
       "sub": "Combat Sports",
@@ -58,21 +58,21 @@
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 56
+      "n": 38
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 16
+      "n": 13
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 122
+      "n": 183
     },
     {
       "sub": "Price Predictions",
-      "n": 32
+      "n": 22
     },
     {
       "sub": "Protocol & Launches",
@@ -82,17 +82,21 @@
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 102
+      "n": 84
     },
     {
       "sub": "Tech Companies",
-      "n": 14
+      "n": 21
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 23
+      "n": 91
+    },
+    {
+      "sub": "Celebrity & Events",
+      "n": 1
     }
   ],
   "Science": [
