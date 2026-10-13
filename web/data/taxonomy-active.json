@@ -2,89 +2,101 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4563
+      "n": 4053
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 239
+      "n": 213
     },
     {
       "sub": "Policy & Governance",
-      "n": 143
+      "n": 137
+    }
+  ],
+  "Economy & Finance": [
+    {
+      "sub": "Macroeconomics",
+      "n": 26
+    },
+    {
+      "sub": "Monetary Policy",
+      "n": 19
+    },
+    {
+      "sub": "Financial Markets",
+      "n": 8
     }
   ],
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 17
-    },
-    {
-      "sub": "NBA",
-      "n": 8
-    },
-    {
-      "sub": "Other Sports",
-      "n": 5
+      "n": 12
     },
     {
       "sub": "MLB",
-      "n": 4
+      "n": 6
+    },
+    {
+      "sub": "NBA",
+      "n": 5
+    },
+    {
+      "sub": "Other Sports",
+      "n": 3
     },
     {
       "sub": "Combat Sports",
       "n": 1
-    }
-  ],
-  "Economy & Finance": [
-    {
-      "sub": "Monetary Policy",
-      "n": 30
     },
     {
-      "sub": "Macroeconomics",
-      "n": 21
-    },
-    {
-      "sub": "Financial Markets",
-      "n": 7
+      "sub": "F1 & Motorsport",
+      "n": 1
     }
   ],
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 34
+      "n": 25
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 12
+      "n": 13
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 155
+      "n": 125
     },
     {
       "sub": "Price Predictions",
-      "n": 23
+      "n": 21
+    },
+    {
+      "sub": "Protocol & Launches",
+      "n": 1
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 86
+      "n": 121
     },
     {
       "sub": "Tech Companies",
-      "n": 23
+      "n": 19
     }
   ],
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 50
+      "n": 97
+    },
+    {
+      "sub": "Celebrity & Events",
+      "n": 1
     }
   ],
   "Science": [
