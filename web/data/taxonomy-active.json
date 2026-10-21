@@ -2,99 +2,95 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4111
+      "n": 3877
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 179
+      "n": 264
     },
     {
       "sub": "Policy & Governance",
-      "n": 104
-    }
-  ],
-  "Economy & Finance": [
-    {
-      "sub": "Monetary Policy",
-      "n": 25
-    },
-    {
-      "sub": "Macroeconomics",
-      "n": 11
-    },
-    {
-      "sub": "Financial Markets",
-      "n": 3
+      "n": 159
     }
   ],
   "Sports": [
     {
       "sub": "Global Soccer",
-      "n": 17
+      "n": 13
+    },
+    {
+      "sub": "NBA",
+      "n": 8
+    },
+    {
+      "sub": "Other Sports",
+      "n": 6
     },
     {
       "sub": "MLB",
       "n": 5
-    },
-    {
-      "sub": "NBA",
-      "n": 4
-    },
-    {
-      "sub": "Other Sports",
-      "n": 3
-    },
-    {
-      "sub": "Combat Sports",
-      "n": 1
     }
   ],
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 25
+      "n": 54
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 11
+      "n": 13
+    }
+  ],
+  "Economy & Finance": [
+    {
+      "sub": "Monetary Policy",
+      "n": 27
+    },
+    {
+      "sub": "Macroeconomics",
+      "n": 18
+    },
+    {
+      "sub": "Financial Markets",
+      "n": 5
     }
   ],
   "Crypto": [
     {
-      "sub": "Speculation",
-      "n": 99
+      "sub": "Price Predictions",
+      "n": 10
     },
     {
-      "sub": "Price Predictions",
-      "n": 9
+      "sub": "Speculation",
+      "n": 4
     },
     {
       "sub": "Protocol & Launches",
       "n": 2
     }
   ],
-  "Culture & Media": [
-    {
-      "sub": "Soundbites",
-      "n": 119
-    }
-  ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 25
+      "n": 52
     },
     {
       "sub": "Tech Companies",
-      "n": 4
+      "n": 13
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
       "n": 2
+    }
+  ],
+  "Culture & Media": [
+    {
+      "sub": "Soundbites",
+      "n": 71
     }
   ]
 }
