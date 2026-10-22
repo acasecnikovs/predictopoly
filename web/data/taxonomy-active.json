@@ -2,95 +2,99 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 3877
+      "n": 4824
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 264
+      "n": 251
     },
     {
       "sub": "Policy & Governance",
-      "n": 159
-    }
-  ],
-  "Sports": [
-    {
-      "sub": "Global Soccer",
-      "n": 13
-    },
-    {
-      "sub": "NBA",
-      "n": 8
-    },
-    {
-      "sub": "Other Sports",
-      "n": 6
-    },
-    {
-      "sub": "MLB",
-      "n": 5
-    }
-  ],
-  "World Politics": [
-    {
-      "sub": "Non-US Elections",
-      "n": 54
-    },
-    {
-      "sub": "International Relations & Conflicts",
-      "n": 13
+      "n": 179
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Monetary Policy",
-      "n": 27
+      "n": 31
     },
     {
       "sub": "Macroeconomics",
-      "n": 18
+      "n": 26
     },
     {
       "sub": "Financial Markets",
       "n": 5
     }
   ],
+  "Sports": [
+    {
+      "sub": "NBA",
+      "n": 20
+    },
+    {
+      "sub": "Global Soccer",
+      "n": 15
+    },
+    {
+      "sub": "Other Sports",
+      "n": 8
+    },
+    {
+      "sub": "MLB",
+      "n": 4
+    }
+  ],
+  "World Politics": [
+    {
+      "sub": "Non-US Elections",
+      "n": 67
+    },
+    {
+      "sub": "International Relations & Conflicts",
+      "n": 12
+    }
+  ],
   "Crypto": [
+    {
+      "sub": "Speculation",
+      "n": 73
+    },
     {
       "sub": "Price Predictions",
       "n": 10
     },
     {
-      "sub": "Speculation",
-      "n": 4
-    },
-    {
       "sub": "Protocol & Launches",
-      "n": 2
+      "n": 1
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 52
+      "n": 63
     },
     {
       "sub": "Tech Companies",
-      "n": 13
+      "n": 11
+    }
+  ],
+  "Culture & Media": [
+    {
+      "sub": "Soundbites",
+      "n": 73
+    },
+    {
+      "sub": "Celebrity & Events",
+      "n": 1
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
       "n": 2
-    }
-  ],
-  "Culture & Media": [
-    {
-      "sub": "Soundbites",
-      "n": 71
     }
   ]
 }
