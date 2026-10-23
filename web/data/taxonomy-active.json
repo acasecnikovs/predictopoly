@@ -2,99 +2,95 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4824
+      "n": 4690
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 251
+      "n": 208
     },
     {
       "sub": "Policy & Governance",
-      "n": 179
-    }
-  ],
-  "Economy & Finance": [
-    {
-      "sub": "Monetary Policy",
-      "n": 31
-    },
-    {
-      "sub": "Macroeconomics",
-      "n": 26
-    },
-    {
-      "sub": "Financial Markets",
-      "n": 5
+      "n": 133
     }
   ],
   "Sports": [
     {
-      "sub": "NBA",
-      "n": 20
-    },
-    {
       "sub": "Global Soccer",
-      "n": 15
-    },
-    {
-      "sub": "Other Sports",
-      "n": 8
+      "n": 17
     },
     {
       "sub": "MLB",
-      "n": 4
+      "n": 8
+    },
+    {
+      "sub": "NBA",
+      "n": 5
+    },
+    {
+      "sub": "Other Sports",
+      "n": 2
     }
   ],
   "World Politics": [
     {
       "sub": "Non-US Elections",
-      "n": 67
+      "n": 37
     },
     {
       "sub": "International Relations & Conflicts",
-      "n": 12
+      "n": 13
+    }
+  ],
+  "Economy & Finance": [
+    {
+      "sub": "Macroeconomics",
+      "n": 28
+    },
+    {
+      "sub": "Monetary Policy",
+      "n": 15
+    },
+    {
+      "sub": "Financial Markets",
+      "n": 4
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 73
+      "n": 36
     },
     {
       "sub": "Price Predictions",
-      "n": 10
+      "n": 8
     },
     {
       "sub": "Protocol & Launches",
-      "n": 1
+      "n": 2
     }
   ],
   "AI & Tech": [
     {
       "sub": "Model Releases & Benchmarks",
-      "n": 63
+      "n": 65
     },
     {
       "sub": "Tech Companies",
-      "n": 11
-    }
-  ],
-  "Culture & Media": [
-    {
-      "sub": "Soundbites",
-      "n": 73
-    },
-    {
-      "sub": "Celebrity & Events",
-      "n": 1
+      "n": 10
     }
   ],
   "Science": [
     {
       "sub": "Weather & Disasters",
       "n": 2
+    }
+  ],
+  "Culture & Media": [
+    {
+      "sub": "Soundbites",
+      "n": 4
     }
   ]
 }
