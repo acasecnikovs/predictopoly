@@ -2,27 +2,27 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4424
+      "n": 5064
     }
   ],
   "US Politics": [
     {
       "sub": "Presidential Elections",
-      "n": 105
+      "n": 129
     },
     {
       "sub": "Policy & Governance",
-      "n": 81
+      "n": 96
     }
   ],
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 23
+      "n": 7
     },
     {
       "sub": "Monetary Policy",
-      "n": 6
+      "n": 4
     },
     {
       "sub": "Financial Markets",
@@ -42,7 +42,7 @@
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 20
+      "n": 58
     }
   ],
   "Sports": [
@@ -52,7 +52,7 @@
     },
     {
       "sub": "Other Sports",
-      "n": 3
+      "n": 2
     }
   ],
   "Science": [
@@ -64,7 +64,11 @@
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 56
+      "n": 6
+    },
+    {
+      "sub": "Celebrity & Events",
+      "n": 1
     }
   ]
 }
