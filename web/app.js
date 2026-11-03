@@ -268,7 +268,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
 
   // ------- data -------
   // Cache-bust by app version so taxonomy revisions actually reach the browser.
-  const DATA_V = "e7c623b";
+  const DATA_V = "7e8841d";
 
   // First paint only needs the 87-question hot pack (~7 KB brotli). The full
   // markets.json (1.3 MB brotli) loads in the background and swaps in when
