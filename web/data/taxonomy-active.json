@@ -2,13 +2,13 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4515
+      "n": 4811
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 229
+      "n": 222
     }
   ],
   "World Politics": [
@@ -20,11 +20,11 @@
   "Culture & Media": [
     {
       "sub": "Soundbites",
-      "n": 35
+      "n": 111
     },
     {
       "sub": "Movies, TV & Awards",
-      "n": 2
+      "n": 4
     }
   ],
   "Sports": [
@@ -36,7 +36,7 @@
   "Economy & Finance": [
     {
       "sub": "Macroeconomics",
-      "n": 6
+      "n": 2
     }
   ]
 }
