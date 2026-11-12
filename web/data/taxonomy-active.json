@@ -2,13 +2,13 @@
   "Miscellaneous": [
     {
       "sub": "Unclassified",
-      "n": 4552
+      "n": 4374
     }
   ],
   "Crypto": [
     {
       "sub": "Speculation",
-      "n": 181
+      "n": 137
     }
   ],
   "World Politics": [
@@ -17,26 +17,20 @@
       "n": 1
     }
   ],
-  "Culture & Media": [
-    {
-      "sub": "Soundbites",
-      "n": 63
-    },
-    {
-      "sub": "Movies, TV & Awards",
-      "n": 1
-    }
-  ],
-  "Economy & Finance": [
-    {
-      "sub": "Macroeconomics",
-      "n": 4
-    }
-  ],
   "Sports": [
     {
       "sub": "MLB",
-      "n": 1
+      "n": 4
+    }
+  ],
+  "Culture & Media": [
+    {
+      "sub": "Soundbites",
+      "n": 75
+    },
+    {
+      "sub": "Movies, TV & Awards",
+      "n": 2
     }
   ]
 }
