@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>predictopoly</title>
-<meta name="description" content="Free calibration training on Polymarket - past and live. Set the probability of YES on past markets for instant scoring, or call live markets and get scored when they settle. 37,000+ resolved questions plus active markets refreshed daily. No accounts, runs in your browser.">
+<meta name="description" content="Free probability calibration practice on past Polymarket questions. Market updates paused on 13 November 2026; live-mode questions and prices are frozen snapshots. No account required.">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -13,16 +13,16 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://predictopoly.com/">
 <meta property="og:title" content="predictopoly">
-<meta property="og:description" content="Calibration training on Polymarket - past and live. Set the probability of YES on past markets for instant scoring, or call live ones and get scored when they settle. Free, no accounts, runs in your browser.">
+<meta property="og:description" content="Practice probability calibration on past Polymarket questions. Market updates are paused; live-mode data is no longer refreshed. Free, no account required.">
 <meta property="og:image" content="https://predictopoly.com/og-image.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="predictopoly">
-<meta name="twitter:description" content="Calibration training on Polymarket - past and live. Set the probability of YES on past markets for instant scoring, or call live ones and get scored when they settle. Free, no accounts, runs in your browser.">
+<meta name="twitter:description" content="Practice probability calibration on past Polymarket questions. Market updates are paused; live-mode data is no longer refreshed. Free, no account required.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png?v=2">
 
-<link rel="stylesheet" href="style.css?v=75">
+<link rel="stylesheet" href="style.css?v=paused-20261113">
 <link rel="preload" href="data/taxonomy.json?v=18" as="fetch" type="application/json" crossorigin>
 <!-- chart.js is loaded lazily by app.js when the user opens the stats view -->
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
@@ -48,6 +48,15 @@
 
 <main>
 
+  <aside class="pause-notice" aria-labelledby="pause-notice-title">
+    <div class="pause-notice-heading">
+      <strong id="pause-notice-title">Market updates are paused</strong>
+      <span>Since <time datetime="2026-11-13">13 Nov 2026</time></span>
+    </div>
+    <p>Live-mode questions and prices are no longer refreshed and may be out of date. Past-market practice remains available.</p>
+    <a href="https://github.com/acasecnikovs/predictopoly#project-status" target="_blank" rel="noopener">Project status <span aria-hidden="true">↗</span></a>
+  </aside>
+
   <!-- Phase B.3: appears after a boot-time resolution sweep promotes any
        pending entries into history, so the user knows what happened
        without having to dig through Open / Stats. Click jumps to Stats
@@ -64,23 +73,20 @@
   </div>
 
   <div class="deck-strip" id="deck-strip">
-    <span id="deck-mode-tag" class="deck-mode-tag" data-mode="active" title="Switch in Change deck">Live markets</span>
+    <span id="deck-mode-tag" class="deck-mode-tag" data-mode="resolved" title="Switch in Change deck">Past markets</span>
     <span id="deck-label">loading...</span>
     <button id="btn-open-deck" class="deck-change" type="button">Change deck</button>
   </div>
   <script>
-    // Read saved dataMode synchronously and set the tag text/data-mode before
-    // app.js boots. Avoids a "wrong mode flash" - returning users with
-    // dataMode=resolved would otherwise see "Live markets" for the first few
-    // hundred ms before app.js loaded prefs and updated the tag.
+    // Match app.js's past-market default while preserving a saved live mode.
     (function(){
       try {
         var p = JSON.parse(localStorage.getItem("predictopoly.prefs.v1") || "{}");
-        if (p.dataMode === "resolved") {
+        if (p.dataMode === "active") {
           var el = document.getElementById("deck-mode-tag");
           if (el) {
-            el.textContent = "Past markets";
-            el.setAttribute("data-mode", "resolved");
+            el.textContent = "Live markets (paused)";
+            el.setAttribute("data-mode", "active");
           }
         }
       } catch (e) {}
@@ -93,14 +99,15 @@
       <img src="favicon.svg" alt="" class="welcome-mark" width="64" height="64">
       <div class="welcome-brand" aria-hidden="true">predictopoly</div>
       <p id="welcome-lede" class="welcome-lede">Calibration training on real Polymarket questions. Set the probability of <b>YES</b>, see how sharp you actually are.</p>
+      <p class="welcome-pause-note">Market updates paused on <time datetime="2026-11-13">13 November 2026</time>. Past-market practice remains available.</p>
       <div class="welcome-modes">
         <div class="welcome-mode">
-          <div class="welcome-mode-tag active">Live markets</div>
-          <p>Currently-open questions. Scored when they resolve.</p>
+          <div class="welcome-mode-tag active">Live markets (paused)</div>
+          <p>Saved questions and prices. No longer refreshed; may be out of date.</p>
         </div>
         <div class="welcome-mode">
           <div class="welcome-mode-tag resolved">Past markets</div>
-          <p>~47k resolved questions. Instant feedback against the outcome and the closing price.</p>
+          <p>Resolved questions. Instant feedback against the outcome and the saved market price.</p>
         </div>
       </div>
       <div class="welcome-shortcuts">
@@ -233,12 +240,12 @@
 
   <section id="view-open" class="hidden">
     <h2 class="page-title">Open predictions</h2>
-    <p class="muted small open-lede">Predictions you've made on currently-open markets. Each one gets scored automatically when its market resolves and moves into your Stats.</p>
+    <p class="muted small open-lede">Your saved live-market predictions. Market updates are paused, so the questions and prices in Live mode may be out of date.</p>
 
     <div id="open-empty" class="open-empty hidden">
       <h3 class="empty-title">No live-market predictions are currently open</h3>
-      <p class="empty-body muted">Switch to <b>Live markets</b> on the Play screen and make a prediction - it lands here until the market closes, then gets scored automatically.</p>
-      <button id="btn-open-go-active" class="primary">Go to Live markets <span class="arrow">→</span></button>
+      <p class="empty-body muted">Your saved live-market predictions appear here. Live-mode questions and prices are no longer refreshed; use Past markets for practice.</p>
+      <button id="btn-open-go-active" class="primary">View paused Live markets <span class="arrow">→</span></button>
     </div>
 
     <div id="open-list" class="open-list"></div>
@@ -321,10 +328,10 @@
     <div class="modal-mode-block">
       <div class="filter-label">market mode</div>
       <div class="mode-toggle" role="tablist" aria-label="market mode">
-        <button id="btn-mode-active" class="mode-tab current" data-mode="active" role="tab" aria-selected="true">Live markets</button>
-        <button id="btn-mode-resolved" class="mode-tab" data-mode="resolved" role="tab" aria-selected="false">Past markets</button>
+        <button id="btn-mode-active" class="mode-tab" data-mode="active" role="tab" aria-selected="false">Live (paused)</button>
+        <button id="btn-mode-resolved" class="mode-tab current" data-mode="resolved" role="tab" aria-selected="true">Past markets</button>
       </div>
-      <p class="muted small modal-mode-help" id="modal-mode-help">Currently-open questions. Your call lands in Open and gets scored when the market resolves.</p>
+      <p class="muted small modal-mode-help" id="modal-mode-help">Resolved questions, instant scoring against the outcome and the saved market price.</p>
     </div>
 
     <div class="presets" id="deck-presets"></div>
@@ -367,6 +374,6 @@
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">by ac <span class="arrow">↗</span></a>
 </footer>
 
-<script src="app.js?v=0c3f281" defer></script>
+<script src="app.js?v=paused-20261113" defer></script>
 </body>
 </html>

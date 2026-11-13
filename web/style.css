@@ -150,6 +150,42 @@ main {
 
 .page-title { color: var(--text); margin-bottom: 1.5rem; }
 
+/* Visible in every view, even if JavaScript or data loading fails. */
+.pause-notice {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #ead4a4;
+  border-left: 3px solid #b7791f;
+  border-radius: 6px;
+  background: #fff8e8;
+  color: #654913;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.pause-notice-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.15rem 0.75rem;
+  margin-bottom: 0.4rem;
+}
+.pause-notice-heading strong { font-size: 0.875rem; }
+.pause-notice-heading > span { font-size: 0.75rem; }
+.pause-notice p { margin: 0 0 0.4rem; }
+.pause-notice a { color: #654913; border-bottom-color: #b7791f; }
+.pause-notice a:hover { border-bottom-color: #654913; }
+.pause-notice a:focus-visible { outline: 2px solid #654913; outline-offset: 3px; }
+.welcome-pause-note {
+  margin: 0 0 1.25rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 6px;
+  background: #fff8e8;
+  color: #654913;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
 /* ------- deck strip ------- */
 
 .deck-strip {

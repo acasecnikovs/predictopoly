@@ -244,10 +244,9 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     try {
       const p = JSON.parse(localStorage.getItem(LS_PREFS) || "{}");
       const vi = p.volIdx ?? 4;
-      // First-visit default flipped from resolved -> active on 2026-05-21.
-      // Live markets are the actual calibration product; past mode is now
-      // explicit warmup. Returning users keep whatever they had.
-      const dm = p.dataMode ? (p.dataMode === "resolved" ? "resolved" : "active") : "active";
+      // Data refreshes are paused. New visitors start with past-market
+      // practice; returning users keep their saved mode and history.
+      const dm = p.dataMode === "active" ? "active" : "resolved";
       const decks = (p._decks && typeof p._decks === "object") ? p._decks : {};
       const sort = VALID_SORTS.includes(p.sort) ? p.sort : "random";
       return {
@@ -262,7 +261,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
         sort,                        // "random" | "end-asc" | "end-desc"
         _decks: decks,               // { resolved?: {mode, subs}, active?: {mode, subs} }
       };
-    } catch { return { mode: "custom", subs: null, volIdx: 4, dataMode: "active", sort: "random", _decks: {} }; }
+    } catch { return { mode: "custom", subs: null, volIdx: 4, dataMode: "resolved", sort: "random", _decks: {} }; }
   }
   function savePrefs() { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); }
 
@@ -615,14 +614,14 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
     const tag = $("deck-mode-tag");
     if (tag) {
       tag.dataset.mode = dm;
-      tag.textContent = dm === "active" ? "Live markets" : "Past markets";
+      tag.textContent = dm === "active" ? "Live markets (paused)" : "Past markets";
     }
     // Help line under the modal toggle reflects which mode is active.
     const help = $("modal-mode-help");
     if (help) {
       help.textContent = dm === "active"
-        ? "Currently-open questions. Your call lands in Open and gets scored when the market resolves."
-        : "~37k resolved questions, instant scoring against the outcome and the closing market price.";
+        ? "Updates paused since 13 November 2026. These saved questions and prices may be out of date."
+        : "Resolved questions, instant scoring against the outcome and the saved market price.";
     }
   }
 
@@ -1985,7 +1984,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       const bits = [];
       if (open > 0) bits.push(`${open} open prediction${open === 1 ? "" : "s"} awaiting resolution`);
       if (resolved === 0 && open === 0) {
-        bits.push("No live-market predictions yet - switch to Live markets and make one.");
+        bits.push("No live-market predictions yet. Live-mode data updates are paused.");
       } else if (resolved === 0 && open > 0) {
         bits.push("Stats fill in once your open predictions resolve.");
       }
