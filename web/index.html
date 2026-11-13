@@ -22,7 +22,7 @@
 <meta name="twitter:description" content="Practice probability calibration on past Polymarket questions. Market updates are paused; live-mode data is no longer refreshed. Free, no account required.">
 <meta name="twitter:image" content="https://predictopoly.com/og-image.png?v=2">
 
-<link rel="stylesheet" href="style.css?v=paused-20261113">
+<link rel="stylesheet" href="style.css?v=paused-20261113-dismiss">
 <link rel="preload" href="data/taxonomy.json?v=18" as="fetch" type="application/json" crossorigin>
 <!-- chart.js is loaded lazily by app.js when the user opens the stats view -->
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
@@ -48,7 +48,8 @@
 
 <main>
 
-  <aside class="pause-notice" aria-labelledby="pause-notice-title">
+  <aside id="pause-notice" class="pause-notice" aria-labelledby="pause-notice-title">
+    <button id="btn-pause-notice-dismiss" class="pause-notice-close hidden" type="button" aria-label="Dismiss market updates notice" title="Dismiss notice"><span aria-hidden="true">✕</span></button>
     <div class="pause-notice-heading">
       <strong id="pause-notice-title">Market updates are paused</strong>
       <span>Since <time datetime="2026-11-13">13 Nov 2026</time></span>
@@ -56,6 +57,27 @@
     <p>Live-mode questions and prices are no longer refreshed and may be out of date. Past-market practice remains available.</p>
     <a href="https://github.com/acasecnikovs/predictopoly#project-status" target="_blank" rel="noopener">Project status <span aria-hidden="true">↗</span></a>
   </aside>
+  <script>
+    // Restore dismissal before rendering the rest of the page, independently
+    // of market-data loading. A future notice can use a new dated key.
+    (function () {
+      var key = "predictopoly.pauseNotice.dismissed.20261113";
+      var notice = document.getElementById("pause-notice");
+      var close = document.getElementById("btn-pause-notice-dismiss");
+      try {
+        if (localStorage.getItem(key) === "1") notice.classList.add("hidden");
+      } catch (e) {}
+      close.classList.remove("hidden");
+      close.addEventListener("click", function () {
+        notice.classList.add("hidden");
+        try { localStorage.setItem(key, "1"); } catch (e) {}
+      });
+      close.addEventListener("keydown", function (e) {
+        // Keep native button activation from triggering the game's shortcuts.
+        e.stopPropagation();
+      });
+    })();
+  </script>
 
   <!-- Phase B.3: appears after a boot-time resolution sweep promotes any
        pending entries into history, so the user knows what happened
@@ -374,6 +396,6 @@
   <a href="https://acasecnikovs.com" target="_blank" rel="noopener" class="sig-link">by ac <span class="arrow">↗</span></a>
 </footer>
 
-<script src="app.js?v=paused-20261113" defer></script>
+<script src="app.js?v=paused-20261113-dismiss" defer></script>
 </body>
 </html>

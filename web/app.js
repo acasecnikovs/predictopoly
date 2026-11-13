@@ -2426,6 +2426,7 @@ window.addEventListener("unhandledrejection", (e) => window.__ppErrs.push("promi
       localStorage.removeItem(LS_ONBOARD);
       localStorage.removeItem(LS_SID);
       localStorage.removeItem(LS_REVISITED);
+      localStorage.removeItem("predictopoly.pauseNotice.dismissed.20261113");
       sessionStorage.clear();
     } catch { /* ignore - private mode etc., reload still helps */ }
     // Clear the URL hash too: location.reload() preserves it, so a user

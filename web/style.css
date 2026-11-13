@@ -152,6 +152,7 @@ main {
 
 /* Visible in every view, even if JavaScript or data loading fails. */
 .pause-notice {
+  position: relative;
   margin: 0 0 1rem;
   padding: 0.9rem 1rem;
   border: 1px solid #ead4a4;
@@ -169,7 +170,23 @@ main {
   justify-content: space-between;
   gap: 0.15rem 0.75rem;
   margin-bottom: 0.4rem;
+  padding-right: 2rem;
 }
+.pause-notice-close {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+}
+.pause-notice-close:hover { background: rgba(101, 73, 19, 0.08); }
+.pause-notice-close:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
 .pause-notice-heading strong { font-size: 0.875rem; }
 .pause-notice-heading > span { font-size: 0.75rem; }
 .pause-notice p { margin: 0 0 0.4rem; }
