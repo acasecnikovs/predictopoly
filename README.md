@@ -1,5 +1,10 @@
 # Predictopoly
 
+> [!WARNING]
+> **Market updates paused since 13 November 2026.** Live-mode questions and
+> prices are no longer refreshed and may be out of date. Past-market practice
+> remains available. See [project status](#project-status).
+
 Practice probabilistic forecasting with real Polymarket questions.
 
 **[Try Predictopoly →](https://predictopoly.com)**
@@ -12,9 +17,9 @@ Free to use, with no account or money required.
 
 ## How it works
 
-- **Live markets:** predict an open question and save it to your Open tray.
-  The app checks for settled outcomes when you return or open the tray, then
-  scores resolved predictions and moves them into your history.
+- **Live markets (paused):** the saved market snapshot is still accessible,
+  but questions and prices are no longer refreshed and may be stale. Existing
+  open predictions and history remain in your browser.
 - **Past markets:** practice on resolved questions and reveal the outcome
   immediately after submitting your probability.
 - **Choose your subjects:** use deck presets or filter by category,
@@ -45,16 +50,34 @@ local storage. They do not sync between devices, and clearing site data
 removes them. The app also sends submitted predictions and a random session
 identifier to its API for aggregate statistics and per-question percentiles.
 
+## Project status
+
+**Automatic data updates are paused as of 13 November 2026.** The
+[refresh-active workflow](https://github.com/acasecnikovs/predictopoly/actions/workflows/refresh-active.yml)
+has been disabled. The Groq classification model returns `404` (unavailable),
+leaving new questions unclassified; the latest run failed its data checks
+before publishing.
+
+The bundled data was last updated on **12 November 2026**. Live-mode questions
+and prices are frozen snapshots, not current market data. Past-market
+practice remains available and is the default for new visitors. Saved
+preferences, predictions, and history are preserved in the browser.
+
+The separate `deploy-only` workflow can publish site changes without
+re-enabling data refreshes. To resume updates, repair and validate the
+classification pipeline before re-enabling `refresh-active`.
+
 ## Data and updates
 
 Questions, resolution data, and market prices come from Polymarket. The
 repository includes source data in Parquet and JSONL format and generated
 JSON bundles used by the website.
 
-The [refresh workflow](.github/workflows/refresh-active.yml) is scheduled
-daily at 06:00 UTC. It promotes newly resolved markets into the past dataset,
-fetches active markets, classifies new questions, and exports the web bundles.
-Market counts change with each refresh; the repository is not a fixed dataset.
+Before the pause, the [refresh workflow](.github/workflows/refresh-active.yml)
+ran daily. It promoted newly resolved markets into the past dataset, fetched
+active markets, classified new questions, and exported the web bundles.
+Its schedule remains in the workflow file, but the workflow is disabled in
+GitHub Actions and does not run automatically.
 
 The canonical categories and subcategories live in
 [`scripts/_taxonomy.py`](scripts/_taxonomy.py), shared by the classifiers and
@@ -83,7 +106,7 @@ work without that backend.
 | [`functions/api/`](functions/api/) | Cloudflare Pages Functions for resolution checks and percentiles |
 | [`scripts/`](scripts/) | Fetching, classification, taxonomy, export, and deployment tools |
 | [`data/`](data/) | Source datasets, descriptions, and percentile seed data |
-| [`.github/workflows/`](.github/workflows/) | Scheduled data refresh and manual deployment |
+| [`.github/workflows/`](.github/workflows/) | Paused data refresh and manual deployment |
 | [`wrangler.toml`](wrangler.toml) | Cloudflare Pages configuration and D1 binding |
 
 ## Inspiration
